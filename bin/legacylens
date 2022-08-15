@@ -1,0 +1,52 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use LegacyLens\Report\JsonWriter;
+use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\FileDiscovery;
+use LegacyLens\Scanner\Scanner;
+
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (!is_file($autoload)) {
+    fwrite(STDERR, "Dependencies are missing. Run composer install first.\n");
+    exit(1);
+}
+require $autoload;
+
+$arguments = $argv;
+array_shift($arguments);
+if (count($arguments) < 2 || $arguments[0] !== 'scan') {
+    fwrite(STDERR, "Usage: php bin/legacylens scan <directory> --output=<report.json> [--exclude=<path>]\n");
+    exit(1);
+}
+$root = $arguments[1];
+$output = null;
+$exclusions = [];
+foreach (array_slice($arguments, 2) as $argument) {
+    if (str_starts_with($argument, '--output=')) {
+        $output = substr($argument, strlen('--output='));
+    } elseif (str_starts_with($argument, '--exclude=')) {
+        $exclusions[] = substr($argument, strlen('--exclude='));
+    } else {
+        fwrite(STDERR, "Unknown option.\n");
+        exit(1);
+    }
+}
+if ($output === null || $output === '') {
+    fwrite(STDERR, "An output path is required.\n");
+    exit(1);
+}
+
+try {
+    $scanner = new Scanner(new FileDiscovery(), new Extractor());
+    $report = $scanner->scan($root, $exclusions);
+    (new JsonWriter())->write($report, $output, $root);
+    $count = count($report['scan']['warnings']);
+    fwrite(STDOUT, sprintf("Scanned %d files; %d warnings.\n", $report['scan']['fileCount'], $count));
+    exit($count > 0 ? 2 : 0);
+} catch (Throwable $error) {
+    fwrite(STDERR, "Scan failed: " . $error->getMessage() . "\n");
+    exit(1);
+}

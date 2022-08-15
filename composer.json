@@ -1,0 +1,17 @@
+{
+    "name": "legacylens/legacylens",
+    "description": "A local architecture explorer for PHP projects.",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "nikic/php-parser": "4.14.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LegacyLens\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "php tests/run.php"
+    }
+}

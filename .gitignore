@@ -1,0 +1,6 @@
+/docs/
+/.local-tools/
+/vendor/
+/report.json
+/reports/
+/.composer-ci.phar

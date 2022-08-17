@@ -44,6 +44,7 @@ check($conditional['target']['candidates'] === ['file:Conditional.php'], 'Unreso
 check($conditional['target']['name'] === 'Demo\\ConditionalStore', 'Named references must explain the symbol under consideration.');
 check($matching(['from' => 'file:Orders.php', 'type' => 'include', 'reasonCode' => 'dynamic-expression'])[0]['target']['name'] === null, 'Dynamic expressions must not leak source text.');
 check((new Extractor())->extract('<?php class {')['state'] === 'failed', 'Invalid syntax must produce a parse failure.');
+check((new Extractor())->extract('<?hh namespace Demo;')['reason'] === 'unsupported-hack-syntax', 'Hack source must be reported as unsupported.');
 $syntaxCases = [
     '<?php class Legacy { public function values() { return array(1, 2); } }',
     '<?php class Modern { public function __construct(public readonly string $name) {} } enum Status: string { case Ready = "ready"; }',

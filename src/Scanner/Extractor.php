@@ -17,6 +17,9 @@ final class Extractor
 {
     public function extract(string $source): array
     {
+        if (preg_match('/^\s*<\?hh(?:\s|$)/', $source) === 1) {
+            return ['state' => 'failed', 'reason' => 'unsupported-hack-syntax', 'line' => 1, 'declarations' => [], 'references' => []];
+        }
         $lexer = new Emulative(['usedAttributes' => ['startLine', 'endLine', 'startFilePos', 'endFilePos']]);
         $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7, $lexer);
         try {

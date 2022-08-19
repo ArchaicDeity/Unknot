@@ -46,7 +46,7 @@ final class Scanner
             }
             foreach ($result['declarations'] as $declaration) {
                 if ($declaration['kind'] !== 'function') {
-                    $symbols[strtolower($declaration['name'])][] = ['fileId' => $id, 'conditional' => $declaration['conditional']];
+                    $symbols[strtolower($declaration['name'])][] = ['fileId' => $id, 'kind' => $declaration['kind'], 'conditional' => $declaration['conditional']];
                 }
             }
             foreach ($result['references'] as $reference) {

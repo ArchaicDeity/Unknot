@@ -1,6 +1,6 @@
 # LegacyLens
 
-LegacyLens is an early local PHP architecture explorer. It scans PHP source without executing the target project and writes an experimental JSON report of declarations and selected static references.
+LegacyLens is an early local PHP architecture explorer. It scans PHP source without executing the target project and writes an experimental JSON report of declarations and selected static references, inheritance and trait relationships.
 
 Requires PHP 8.1 and Composer:
 

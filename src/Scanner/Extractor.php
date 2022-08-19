@@ -50,10 +50,43 @@ final class Extractor
                 $references[] = ['type' => 'include', 'name' => $node->expr instanceof Node\Scalar\String_ ? $node->expr->value : null, 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
                 continue;
             }
-            $references[] = ['type' => $node instanceof Node\Expr\New_ ? 'instantiation' : 'static-call', 'name' => $node->class instanceof Node\Name ? $node->class->toString() : null, 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
+            $reference = ['type' => $node instanceof Node\Expr\New_ ? 'instantiation' : 'static-call', 'name' => $node->class instanceof Node\Name ? $node->class->toString() : null, 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
+            if ($node instanceof Node\Expr\New_) {
+                $reference['expectedKind'] = 'class';
+            }
+            $references[] = $reference;
+        }
+
+        foreach ($finder->findInstanceOf($nodes, Node\Stmt\Class_::class) as $node) {
+            if ($node->extends !== null) {
+                $references[] = $this->namedReference('extends', $node->extends, 'class');
+            }
+            foreach ($node->implements as $name) {
+                $references[] = $this->namedReference('implements', $name, 'interface');
+            }
+        }
+        foreach ($finder->findInstanceOf($nodes, Node\Stmt\Interface_::class) as $node) {
+            foreach ($node->extends as $name) {
+                $references[] = $this->namedReference('extends', $name, 'interface');
+            }
+        }
+        foreach ($finder->findInstanceOf($nodes, Node\Stmt\Enum_::class) as $node) {
+            foreach ($node->implements as $name) {
+                $references[] = $this->namedReference('implements', $name, 'interface');
+            }
+        }
+        foreach ($finder->findInstanceOf($nodes, Node\Stmt\TraitUse::class) as $node) {
+            foreach ($node->traits as $name) {
+                $references[] = $this->namedReference('trait-use', $name, 'trait');
+            }
         }
 
         return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references];
+    }
+
+    private function namedReference(string $type, Node\Name $name, string $expectedKind): array
+    {
+        return ['type' => $type, 'name' => $name->toString(), 'expectedKind' => $expectedKind, 'line' => $name->getStartLine(), 'startOffset' => $name->getStartFilePos(), 'endOffset' => $name->getEndFilePos() + 1];
     }
 
     private function isConditional(Node $node): bool

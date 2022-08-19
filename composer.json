@@ -12,6 +12,9 @@
         }
     },
     "scripts": {
-        "test": "php tests/run.php"
+        "test": [
+            "@php tests/run.php",
+            "@php tests/symbol-kinds.php"
+        ]
     }
 }

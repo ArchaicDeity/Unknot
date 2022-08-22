@@ -14,7 +14,8 @@
     "scripts": {
         "test": [
             "@php tests/run.php",
-            "@php tests/symbol-kinds.php"
+            "@php tests/symbol-kinds.php",
+            "@php tests/class-context.php"
         ]
     }
 }

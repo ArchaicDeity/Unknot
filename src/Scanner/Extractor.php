@@ -54,7 +54,7 @@ final class Extractor
             if ($node instanceof Node\Expr\New_) {
                 $reference['expectedKind'] = 'class';
             }
-            $references[] = $reference;
+            $references[] = $this->addClassContext($node, $reference);
         }
 
         foreach ($finder->findInstanceOf($nodes, Node\Stmt\Class_::class) as $node) {
@@ -87,6 +87,39 @@ final class Extractor
     private function namedReference(string $type, Node\Name $name, string $expectedKind): array
     {
         return ['type' => $type, 'name' => $name->toString(), 'expectedKind' => $expectedKind, 'line' => $name->getStartLine(), 'startOffset' => $name->getStartFilePos(), 'endOffset' => $name->getEndFilePos() + 1];
+    }
+
+    private function addClassContext(Node $node, array $reference): array
+    {
+        $keyword = strtolower($reference['name'] ?? '');
+        if (!in_array($keyword, ['self', 'parent', 'static'], true)) {
+            return $reference;
+        }
+        $reference['keyword'] = $keyword;
+        if ($keyword === 'static') {
+            $reference['contextReason'] = 'late-static-binding';
+            return $reference;
+        }
+        $parent = $node->getAttribute('parent');
+        while ($parent !== null && !($parent instanceof Node\Stmt\ClassLike)) {
+            if ($parent instanceof Node\Stmt\Function_) {
+                $reference['contextReason'] = 'class-context-unavailable';
+                return $reference;
+            }
+            $parent = $parent->getAttribute('parent');
+        }
+        if ($parent instanceof Node\Stmt\Trait_) {
+            $reference['contextReason'] = 'trait-context-dependent';
+        } elseif (!($parent instanceof Node\Stmt\Class_) || $parent->name === null || !isset($parent->namespacedName)) {
+            $reference['contextReason'] = 'class-context-unavailable';
+        } elseif ($keyword === 'self') {
+            $reference['name'] = $parent->namespacedName->toString();
+        } elseif ($parent->extends !== null) {
+            $reference['name'] = $parent->extends->toString();
+        } else {
+            $reference['contextReason'] = 'parent-class-unavailable';
+        }
+        return $reference;
     }
 
     private function isConditional(Node $node): bool

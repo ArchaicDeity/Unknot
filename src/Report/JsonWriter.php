@@ -31,6 +31,10 @@ final class JsonWriter
         if (is_link($target) || (file_exists($target) && !is_file($target))) {
             throw new RuntimeException('The output must not be a link or directory.');
         }
+        $incomplete = $this->isIncomplete($report);
+        if ($incomplete && file_exists($target)) {
+            throw new RuntimeException('The previous report was preserved because the scan was incomplete; select a new output path to save the partial report.');
+        }
         $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
         $temporary = @tempnam($parent, '.legacylens-');
         if ($temporary === false) {
@@ -44,6 +48,10 @@ final class JsonWriter
             if (file_put_contents($temporary, $json, LOCK_EX) !== strlen($json)) {
                 throw new RuntimeException('Could not write the report.');
             }
+            clearstatcache(true, $target);
+            if ($incomplete && file_exists($target)) {
+                throw new RuntimeException('The previous report was preserved because the scan was incomplete; select a new output path to save the partial report.');
+            }
             if (is_link($target) || !@rename($temporary, $target)) {
                 throw new RuntimeException('Could not replace the output report.');
             }
@@ -52,5 +60,20 @@ final class JsonWriter
                 unlink($temporary);
             }
         }
+    }
+
+    private function isIncomplete(array $report): bool
+    {
+        foreach ($report['nodes'] ?? [] as $node) {
+            if (($node['parseState'] ?? null) !== 'clean') {
+                return true;
+            }
+        }
+        foreach ($report['scan']['warnings'] ?? [] as $warning) {
+            if (($warning['code'] ?? null) === 'link-or-outside-root-skipped') {
+                return true;
+            }
+        }
+        return false;
     }
 }

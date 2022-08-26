@@ -33,7 +33,7 @@ final class Scanner
         $reader = new SourceReader($this->discovery);
         foreach ($files as $relative => $path) {
             $id = 'file:' . $relative;
-            $read = $reader->read($path, $root, $totalBytes);
+            $read = $reader->read($path, $root, $totalBytes, $discovery['identities'][$relative]);
             $result = $read['source'] === null
                 ? ['state' => 'skipped', 'reason' => $read['reason'], 'declarations' => [], 'references' => []]
                 : $this->extractor->extract($read['source']);

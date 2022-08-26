@@ -12,7 +12,7 @@ use RuntimeException;
 
 final class FileDiscovery
 {
-    /** @return array{files: array<string, string>, warnings: list<array>} */
+    /** @return array{files: array<string, string>, identities: array<string, array|false>, warnings: list<array>} */
     public function discover(string $root, array $exclusions = []): array
     {
         $warnings = [];
@@ -29,6 +29,10 @@ final class FileDiscovery
                     }
                 }
 
+                if (in_array(strtolower($entry->getFilename()), ['.git', 'vendor', 'node_modules', 'dist', 'build'], true)) {
+                    return false;
+                }
+
                 $resolved = $entry->getRealPath();
                 if ($entry->isLink() || $resolved === false || !$this->isWithin($resolved, $root)
                     || !$this->samePath($entry->getPathname(), $resolved)) {
@@ -40,7 +44,7 @@ final class FileDiscovery
                 }
 
                 if ($entry->isDir()) {
-                    return !in_array($entry->getFilename(), ['.git', 'vendor', 'node_modules', 'dist', 'build'], true);
+                    return true;
                 }
 
                 return $entry->isFile() && in_array(strtolower($entry->getExtension()), ['php', 'phtml', 'inc'], true);
@@ -48,23 +52,32 @@ final class FileDiscovery
         );
 
         $files = [];
+        $identities = [];
         foreach (new RecursiveIteratorIterator($filter) as $entry) {
             $path = $entry->getPathname();
+            $relative = str_replace('\\', '/', substr($path, strlen($prefix)));
+            clearstatcache(true, $path);
             $resolved = realpath($path);
-            if ($resolved === false || !$this->isWithin($resolved, $root) || is_link($path)) {
+            if ($resolved === false || !$this->isWithin($resolved, $root) || is_link($path)
+                || !$this->samePath($path, $resolved)) {
+                $warnings[] = ['fileId' => 'file:' . $relative, 'code' => 'link-or-outside-root-skipped', 'line' => null];
+                if (count($warnings) > 5000) {
+                    throw new RuntimeException('The scan exceeds the diagnostic limit.');
+                }
                 continue;
             }
-            $relative = str_replace('\\', '/', substr($path, strlen($prefix)));
             if (isset($files[$relative])) {
                 throw new RuntimeException('Conflicting file paths in the scan.');
             }
-            $files[$relative] = $resolved;
+            $files[$relative] = $path;
+            $stat = @stat($path);
+            $identities[$relative] = $stat === false ? false : FileIdentity::fromStat($stat);
             if (count($files) > 10000) {
                 throw new RuntimeException('The scan exceeds the 10,000-file limit.');
             }
         }
         ksort($files, SORT_STRING);
-        return ['files' => $files, 'warnings' => $warnings];
+        return ['files' => $files, 'identities' => $identities, 'warnings' => $warnings];
     }
 
     public function isWithin(string $path, string $root): bool
@@ -78,7 +91,7 @@ final class FileDiscovery
         return $path === $root || str_starts_with($path, $root . '/');
     }
 
-    private function samePath(string $path, string $resolved): bool
+    public function samePath(string $path, string $resolved): bool
     {
         $path = str_replace('\\', '/', $path);
         $resolved = str_replace('\\', '/', $resolved);

@@ -16,7 +16,9 @@
             "@php tests/run.php",
             "@php tests/symbol-kinds.php",
             "@php tests/class-context.php",
-            "@php tests/cli-smoke.php"
+            "@php tests/cli-smoke.php",
+            "@php tests/source-changes.php",
+            "@php tests/source-concurrency.php"
         ]
     }
 }

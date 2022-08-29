@@ -28,38 +28,91 @@ final class JsonWriter
             throw new RuntimeException('The output must be a local file.');
         }
         $target = $parent . DIRECTORY_SEPARATOR . $name;
-        if (is_link($target) || (file_exists($target) && !is_file($target))) {
+        if (!$this->isSafeTarget($target)) {
             throw new RuntimeException('The output must not be a link or directory.');
         }
         $incomplete = $this->isIncomplete($report);
-        if ($incomplete && file_exists($target)) {
+        if (file_exists($target) && $incomplete) {
             throw new RuntimeException('The previous report was preserved because the scan was incomplete; select a new output path to save the partial report.');
         }
         $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
-        $temporary = @tempnam($parent, '.legacylens-');
-        if ($temporary === false) {
+        $this->writeAtomically($parent, $target, $json, $incomplete);
+    }
+
+    private function writeAtomically(string $parent, string $target, string $json, bool $incomplete): void
+    {
+        $temporary = $parent . DIRECTORY_SEPARATOR . '.legacylens-' . bin2hex(random_bytes(16));
+        // The file is created exclusively and kept open while writing, so a later path swap cannot redirect the write.
+        $oldMask = umask(0077);
+        try {
+            $handle = @fopen($temporary, 'x+b');
+        } finally {
+            umask($oldMask);
+        }
+        if ($handle === false) {
             throw new RuntimeException('Could not create a temporary report.');
         }
+        $stat = fstat($handle);
+        $identity = $stat === false ? null : [$stat['dev'], $stat['ino']];
         try {
-            // tempnam may fall back to the system directory, breaking the intended write boundary.
-            if (realpath(dirname($temporary)) !== $parent) {
-                throw new RuntimeException('Could not create a temporary report in the output directory.');
+            if ($stat === false || $stat['ino'] === 0 || ($stat['mode'] & 0170000) !== 0100000
+                || (PHP_OS_FAMILY !== 'Windows' && ($stat['mode'] & 0077) !== 0)) {
+                throw new RuntimeException('Could not verify the temporary report permissions or identity.');
             }
-            if (file_put_contents($temporary, $json, LOCK_EX) !== strlen($json)) {
-                throw new RuntimeException('Could not write the report.');
+            $written = 0;
+            while ($written < strlen($json)) {
+                $count = @fwrite($handle, substr($json, $written, 65536));
+                if ($count === false || $count === 0) {
+                    throw new RuntimeException('Could not write the report.');
+                }
+                $written += $count;
             }
-            clearstatcache(true, $target);
+            if (!fflush($handle)) {
+                throw new RuntimeException('Could not flush the report.');
+            }
+            if (!fclose($handle)) {
+                $handle = null;
+                throw new RuntimeException('Could not close the report.');
+            }
+            $handle = null;
+            if (!$this->sameTemporaryFile($temporary, $identity) || !$this->isSafeTarget($target)) {
+                throw new RuntimeException('Could not replace the output report.');
+            }
             if ($incomplete && file_exists($target)) {
                 throw new RuntimeException('The previous report was preserved because the scan was incomplete; select a new output path to save the partial report.');
             }
-            if (is_link($target) || !@rename($temporary, $target)) {
+            if (!@rename($temporary, $target)) {
                 throw new RuntimeException('Could not replace the output report.');
             }
         } finally {
-            if (is_file($temporary)) {
-                unlink($temporary);
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+            if ($identity !== null && $this->sameTemporaryFile($temporary, $identity)) {
+                @unlink($temporary);
             }
         }
+    }
+
+    private function sameTemporaryFile(string $path, array $identity): bool
+    {
+        clearstatcache(true, $path);
+        $stat = @lstat($path);
+        return $identity[1] !== 0 && $stat !== false && ($stat['mode'] & 0170000) === 0100000
+            && [$stat['dev'], $stat['ino']] === $identity;
+    }
+
+    private function isSafeTarget(string $target): bool
+    {
+        clearstatcache(true, $target);
+        if (is_link($target)) {
+            return false;
+        }
+        if (!file_exists($target)) {
+            return true;
+        }
+        $resolved = realpath($target);
+        return is_file($target) && $resolved !== false && (new FileDiscovery())->samePath($target, $resolved);
     }
 
     private function isIncomplete(array $report): bool

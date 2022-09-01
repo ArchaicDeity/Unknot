@@ -19,7 +19,8 @@
             "@php tests/cli-smoke.php",
             "@php tests/source-changes.php",
             "@php tests/source-concurrency.php",
-            "@php tests/report-file.php"
+            "@php tests/report-file.php",
+            "@php tests/syntax-cases.php"
         ]
     }
 }

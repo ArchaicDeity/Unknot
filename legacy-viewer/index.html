@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LegacyLens report viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="viewer.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>LegacyLens</h1>
+    <p>Explore a scanner report stored on your computer.</p>
+    <label for="report">Choose a JSON report</label>
+    <input id="report" type="file" accept=".json,application/json">
+    <p id="status" role="status">No report selected.</p>
+    <section aria-labelledby="files-heading">
+      <h2 id="files-heading">Files</h2>
+      <ul id="files"></ul>
+    </section>
+    <section aria-labelledby="references-heading">
+      <h2 id="references-heading">References</h2>
+      <p>Select a file to see its references. Unresolved references have no confirmed destination.</p>
+      <ul id="references"></ul>
+    </section>
+  </main>
+</body>
+</html>

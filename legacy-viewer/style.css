@@ -1,0 +1,8 @@
+body { margin: 0; background: #f7f4ed; color: #263238; font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 55rem; padding: 2rem; margin: auto; }
+h1 { color: #934624; margin-bottom: 0; }
+h2 { margin-top: 2rem; border-bottom: 1px solid #d8d0c3; }
+label { display: block; font-weight: 600; margin: 1.5rem 0 .4rem; }
+li { margin: .5rem 0; overflow-wrap: anywhere; }
+button { font: inherit; color: #713216; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid #934624; outline-offset: 3px; }

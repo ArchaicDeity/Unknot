@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">LegacyLens LL mark</title>
+  <rect x="4" y="4" width="72" height="72" rx="3" fill="#efe8d8" stroke="#634b38" stroke-width="3"/>
+  <path d="M20 16 L20 58 L48 58" fill="none" stroke="#634b38" stroke-width="8" stroke-linecap="square"/>
+  <path d="M39 22 L39 64 L62 63" fill="none" stroke="#a05b32" stroke-width="7" stroke-linecap="square"/>
+  <circle cx="61" cy="20" r="6" fill="none" stroke="#a05b32" stroke-width="3"/>
+</svg>

@@ -18,15 +18,22 @@
     <label for="report">Choose a JSON report</label>
     <input id="report" type="file" accept=".json,application/json">
     <p id="status" role="status">No report selected.</p>
+    <details id="overview" hidden>
+      <summary>Directory overview</summary>
+      <p>Files in the report, grouped by their first directory. Select a group to filter the list.</p>
+      <button id="all-directories" type="button">Show all directories</button>
+      <ul id="directories"></ul>
+    </details>
     <section aria-labelledby="files-heading">
       <h2 id="files-heading">Files</h2>
-      <label for="search">Search filenames</label>
-      <input id="search" type="search" placeholder="Type a filename" disabled>
+      <label for="search">Search filenames and declarations</label>
+      <input id="search" type="search" placeholder="Filename, declaration name or kind" disabled>
       <p id="file-count"></p>
       <ul id="files"></ul>
     </section>
     <section aria-labelledby="details-heading">
-      <h2 id="details-heading">File details</h2>
+      <h2 id="details-heading" tabindex="-1">File details</h2>
+      <button id="back" type="button" disabled>Back to previous file</button>
       <p id="file-name">Select a file to see its details.</p>
       <h3>Declarations</h3>
       <ul id="declarations"></ul>
@@ -34,6 +41,7 @@
       <p>Unresolved references have no confirmed destination.</p>
       <ul id="references"></ul>
       <h3>Incoming references</h3>
+      <p>These are known static references, not a complete list of runtime uses.</p>
       <ul id="incoming"></ul>
     </section>
   </main>

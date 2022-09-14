@@ -11,6 +11,9 @@
   var files = document.getElementById('files');
   var detailsHeading = document.getElementById('details-heading');
   var back = document.getElementById('back');
+  var saveFile = document.getElementById('save-file');
+  var readingList = document.getElementById('reading-list');
+  var readingStatus = document.getElementById('reading-status');
   var fileName = document.getElementById('file-name');
   var declarations = document.getElementById('declarations');
   var references = document.getElementById('references');
@@ -19,6 +22,7 @@
   var filesById = new Map();
   var selected = null;
   var history = [];
+  var saved = [];
   var directoryFilter = null;
   var request = 0;
 
@@ -61,6 +65,7 @@
     }
     selected = id;
     back.disabled = history.length === 0;
+    saveFile.disabled = saved.indexOf(id) !== -1 || saved.length >= 100;
     fileName.textContent = file.path + ' — parse state: ' + file.parseState;
     declarations.replaceChildren();
     references.replaceChildren();
@@ -84,6 +89,33 @@
     Array.prototype.forEach.call(files.querySelectorAll('button'), function (button) {
       button.setAttribute('aria-pressed', String(button.dataset.fileId === selected));
     });
+  }
+
+  function renderReadingList() {
+    readingList.replaceChildren();
+    saved.forEach(function (id) {
+      var item = document.createElement('li');
+      var open = document.createElement('button');
+      var remove = document.createElement('button');
+      open.type = 'button';
+      open.textContent = filesById.get(id).path;
+      open.addEventListener('click', function () { showFile(id, true); detailsHeading.focus(); });
+      remove.type = 'button';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', 'Remove ' + filesById.get(id).path + ' from reading list');
+      remove.addEventListener('click', function () {
+        saved = saved.filter(function (fileId) { return fileId !== id; });
+        renderReadingList();
+        if (selected !== null) saveFile.disabled = saved.indexOf(selected) !== -1;
+        readingStatus.textContent = 'File removed from reading list.';
+        document.getElementById('reading-heading').focus();
+      });
+      item.appendChild(open);
+      item.appendChild(document.createTextNode(' '));
+      item.appendChild(remove);
+      readingList.appendChild(item);
+    });
+    if (!saved.length) addLine(readingList, 'No saved files.');
   }
 
   function addFileLink(list, description, id) {
@@ -179,6 +211,14 @@
     showFile(history.pop(), false);
     detailsHeading.focus();
   });
+  saveFile.addEventListener('click', function () {
+    if (selected === null || saved.indexOf(selected) !== -1 || saved.length >= 100) return;
+    saved.push(selected);
+    renderReadingList();
+    saveFile.disabled = true;
+    readingStatus.textContent = 'File added to reading list.';
+    document.getElementById('reading-heading').focus();
+  });
   input.addEventListener('change', async function () {
     var file = input.files[0];
     if (!file) return;
@@ -193,6 +233,9 @@
       report.nodes.forEach(function (node) { filesById.set(node.id, node); });
       selected = null;
       history = [];
+      saved = [];
+      saveFile.disabled = true;
+      readingStatus.textContent = '';
       directoryFilter = null;
       back.disabled = true;
       search.disabled = false;
@@ -201,6 +244,7 @@
       declarations.replaceChildren();
       references.replaceChildren();
       incoming.replaceChildren();
+      renderReadingList();
       renderDirectories();
       renderFiles();
       var incomplete = report.nodes.filter(function (node) { return node.parseState !== 'clean'; }).length;

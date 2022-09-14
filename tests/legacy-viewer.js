@@ -24,7 +24,8 @@ Element.prototype.querySelectorAll = function () {
 };
 
 var ids = ['report', 'search', 'status', 'file-count', 'overview', 'directories', 'all-directories',
-  'files', 'details-heading', 'back', 'file-name', 'declarations', 'references', 'incoming'];
+  'files', 'details-heading', 'back', 'save-file', 'reading-heading', 'reading-list', 'reading-status',
+  'file-name', 'declarations', 'references', 'incoming'];
 var elements = {};
 ids.forEach(function (id) { elements[id] = new Element(); });
 elements.overview.summary = new Element();
@@ -71,6 +72,12 @@ async function load(value) {
   assert.match(elements['file-name'].textContent, /second\/B\.php/);
   elements.back.events.click();
   assert.match(elements['file-name'].textContent, /first\/A\.php/);
+  elements['save-file'].events.click();
+  assert.strictEqual(elements['reading-list'].children[0].children[0].textContent, 'first/A.php');
+  assert.strictEqual(elements['save-file'].disabled, true, 'A saved file cannot be added twice.');
+  elements['reading-list'].children[0].children[2].events.click();
+  assert.strictEqual(elements['save-file'].disabled, false, 'A removed file can be saved again.');
+  elements['save-file'].events.click();
 
   elements.search.value = '';
   elements.search.events.input();
@@ -82,5 +89,8 @@ async function load(value) {
   await load({ schemaVersion: 9 });
   assert.match(elements.status.textContent, /Could not load report/);
   assert.strictEqual(elements.files.children.length, 3, 'An invalid import preserves the prior report.');
+  assert.strictEqual(elements['reading-list'].children[0].children[0].textContent, 'first/A.php', 'An invalid import preserves the reading list.');
+  await load(report);
+  assert.strictEqual(elements['reading-list'].children[0].textContent, 'No saved files.', 'Loading a report clears the old reading list.');
   console.log('LegacyLens viewer checks passed.');
 }()).catch(function (error) { console.error(error); process.exitCode = 1; });

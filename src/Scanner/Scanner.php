@@ -28,6 +28,9 @@ final class Scanner
         $nodes = [];
         $symbols = [];
         $references = [];
+        $methodFiles = [];
+        $methodCount = 0;
+        $callCount = 0;
         $warnings = $discovery['warnings'];
         $totalBytes = 0;
         $reader = new SourceReader($this->discovery);
@@ -37,7 +40,26 @@ final class Scanner
             $result = $read['source'] === null
                 ? ['state' => 'skipped', 'reason' => $read['reason'], 'declarations' => [], 'references' => []]
                 : $this->extractor->extract($read['source']);
+            if ($result['state'] === 'clean' && !(new MethodEvidenceValidator())->valid($result['methodEvidence'] ?? null, $result['declarations'], $read['source'])) {
+                $result = ['state' => 'failed', 'reason' => 'invalid-method-evidence', 'line' => null, 'declarations' => [], 'references' => []];
+            }
             $nodes[] = ['id' => $id, 'path' => $relative, 'kind' => 'file', 'parseState' => $result['state'], 'declarations' => $result['declarations']];
+            $evidence = $result['state'] === 'clean' ? $result['methodEvidence'] : ['methods' => [], 'calls' => []];
+            $methodCount += count($evidence['methods']);
+            $callCount += count($evidence['calls']);
+            if ($methodCount > 100000 || $callCount > 100000) {
+                throw new RuntimeException('The scan exceeds the method evidence limit.');
+            }
+            foreach ($evidence['methods'] as &$method) {
+                unset($method['startOffset'], $method['endOffset']);
+            }
+            unset($method);
+            foreach ($evidence['calls'] as &$call) {
+                unset($call['startOffset'], $call['endOffset']);
+            }
+            unset($call);
+            $methodFiles[] = ['fileId' => $id, 'coverage' => $result['state'] === 'clean' ? 'available' : 'unavailable',
+                'methods' => $evidence['methods'], 'calls' => $evidence['calls']];
             if ($result['state'] !== 'clean') {
                 $warnings[] = ['fileId' => $id, 'code' => $result['reason'] ?? 'parse-error', 'line' => $result['line'] ?? null];
                 if (count($warnings) > 5000) {
@@ -72,6 +94,7 @@ final class Scanner
         }
 
         usort($warnings, static fn (array $a, array $b): int => [$a['fileId'], $a['line'] ?? 0, $a['code']] <=> [$b['fileId'], $b['line'] ?? 0, $b['code']]);
-        return ['schemaVersion' => 0, 'scan' => ['rootLabel' => basename($root), 'fileCount' => count($nodes), 'warnings' => $warnings], 'nodes' => $nodes, 'edges' => $edges];
+        return ['schemaVersion' => 0, 'scan' => ['rootLabel' => basename($root), 'fileCount' => count($nodes), 'warnings' => $warnings],
+            'nodes' => $nodes, 'edges' => $edges, 'extensions' => ['legacyMethodEvidence' => ['version' => 1, 'files' => $methodFiles]]];
     }
 }

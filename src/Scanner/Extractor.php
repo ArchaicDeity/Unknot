@@ -81,7 +81,8 @@ final class Extractor
             }
         }
 
-        return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references];
+        return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,
+            'methodEvidence' => (new MethodEvidence())->collect($nodes)];
     }
 
     private function namedReference(string $type, Node\Name $name, string $expectedKind): array

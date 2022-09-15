@@ -4,6 +4,7 @@
   var input = document.getElementById('report');
   var search = document.getElementById('search');
   var status = document.getElementById('status');
+  var activeReport = document.getElementById('active-report');
   var fileCount = document.getElementById('file-count');
   var overview = document.getElementById('overview');
   var directories = document.getElementById('directories');
@@ -16,9 +17,14 @@
   var readingStatus = document.getElementById('reading-status');
   var fileName = document.getElementById('file-name');
   var declarations = document.getElementById('declarations');
+  var methodsStatus = document.getElementById('methods-status');
+  var methods = document.getElementById('methods');
+  var callsStatus = document.getElementById('calls-status');
+  var calls = document.getElementById('calls');
   var references = document.getElementById('references');
   var incoming = document.getElementById('incoming');
   var report = null;
+  var methodEvidence = { state: 'unavailable', files: new Map() };
   var filesById = new Map();
   var selected = null;
   var history = [];
@@ -56,6 +62,30 @@
     list.appendChild(item);
   }
 
+  function showMethodEvidence(id) {
+    methods.replaceChildren();
+    calls.replaceChildren();
+    var entry = methodEvidence.files.get(id);
+    if (!entry || entry.coverage !== 'available') {
+      methodsStatus.textContent = methodEvidence.state === 'unsupported'
+        ? 'This report uses an unsupported method-evidence version.'
+        : 'Method evidence is unavailable for this file.';
+      callsStatus.textContent = 'Call-expression evidence is unavailable for this file.';
+      return;
+    }
+    methodsStatus.textContent = entry.methods.length + ' directly declared methods' + (entry.methods.length > 100 ? ' (first 100 shown).' : '.');
+    callsStatus.textContent = entry.calls.length + ' static call expressions' + (entry.calls.length > 100 ? ' (first 100 shown).' : '.') +
+      ' These are source expressions, not proof that a method ran.';
+    entry.methods.slice(0, 100).forEach(function (method) {
+      addLine(methods, method.visibility + (method.static ? ' static ' : ' ') + method.owner + '::' + method.name + ' · line ' + method.line);
+    });
+    entry.calls.slice(0, 100).forEach(function (call) {
+      var caller = call.caller ? call.caller.owner + '::' + call.caller.method + ' → ' : '';
+      var target = (call.className || '[dynamic class]') + '::' + (call.methodName || '[dynamic method]');
+      addLine(calls, caller + target + ' · line ' + call.line + ' · ' + call.confidence + ' · ' + call.reason);
+    });
+  }
+
   function showFile(id, remember) {
     var file = filesById.get(id);
     if (!file) return;
@@ -67,6 +97,7 @@
     back.disabled = history.length === 0;
     saveFile.disabled = saved.indexOf(id) !== -1 || saved.length >= 100;
     fileName.textContent = file.path + ' — parse state: ' + file.parseState;
+    showMethodEvidence(id);
     declarations.replaceChildren();
     references.replaceChildren();
     incoming.replaceChildren();
@@ -75,17 +106,21 @@
     });
     report.edges.forEach(function (edge) {
       if (edge.from === id) {
-        var description = edge.type + ' · line ' + edge.line + ' · ' + edge.confidence + ' · ';
+        var description = edge.type + ' · line ' + edge.line + ' · ' + edge.confidence +
+          ' · ' + edge.reasonCode + ' · ';
         if (edge.to !== null) addFileLink(references, description, edge.to);
-        else addLine(references, description + edge.reasonCode);
+        else addLine(references, description + 'no confirmed destination');
       }
       if (edge.to === id && edge.from !== id) {
-        addFileLink(incoming, edge.type + ' · line ' + edge.line + ' · ' + edge.confidence + ' · ', edge.from);
+        addFileLink(incoming, edge.type + ' · line ' + edge.line + ' · ' + edge.confidence +
+          ' · ' + edge.reasonCode + ' · ', edge.from);
       }
     });
-    if (!declarations.children.length) addLine(declarations, 'No declarations found.');
-    if (!references.children.length) addLine(references, 'No outgoing references found.');
-    if (!incoming.children.length) addLine(incoming, 'No incoming references found.');
+    if (!declarations.children.length) addLine(declarations, file.parseState === 'clean'
+      ? 'No declarations reported.' : 'No declarations reported; this file was not parsed cleanly.');
+    if (!references.children.length) addLine(references, file.parseState === 'clean'
+      ? 'No outgoing references reported.' : 'No outgoing references reported; this file was not parsed cleanly.');
+    if (!incoming.children.length) addLine(incoming, 'No incoming references reported. Other files may not have been parsed.');
     Array.prototype.forEach.call(files.querySelectorAll('button'), function (button) {
       button.setAttribute('aria-pressed', String(button.dataset.fileId === selected));
     });
@@ -169,14 +204,24 @@
   function renderFiles() {
     files.replaceChildren();
     var query = search.value.trim().toLowerCase();
-    var matches = report.nodes.filter(function (node) {
-      if (directoryFilter !== null && directoryOf(node.path) !== directoryFilter) return false;
-      return node.path.toLowerCase().indexOf(query) !== -1 || node.declarations.some(function (declaration) {
+    var matches = [];
+    report.nodes.forEach(function (node) {
+      if (directoryFilter !== null && directoryOf(node.path) !== directoryFilter) return;
+      var declarationsFound = query ? node.declarations.filter(function (declaration) {
         return declaration.name.toLowerCase().indexOf(query) !== -1 || declaration.kind.toLowerCase().indexOf(query) !== -1;
-      });
+      }) : [];
+      var entry = methodEvidence.files.get(node.id);
+      var methodsFound = query && entry && entry.coverage === 'available' ? entry.methods.filter(function (method) {
+        return method.name.toLowerCase().indexOf(query) !== -1 || method.owner.toLowerCase().indexOf(query) !== -1;
+      }) : [];
+      if (!query || node.path.toLowerCase().indexOf(query) !== -1 || declarationsFound.length || methodsFound.length) {
+        matches.push({ node: node, declarations: declarationsFound, methods: methodsFound });
+      }
     });
-    fileCount.textContent = matches.length + ' of ' + report.nodes.length + ' files';
-    matches.forEach(function (node) {
+    fileCount.textContent = matches.length + ' of ' + report.nodes.length + ' files' +
+      (matches.length > 500 ? ' (first 500 shown; refine your search).' : '');
+    matches.slice(0, 500).forEach(function (match) {
+      var node = match.node;
       var item = document.createElement('li');
       var button = document.createElement('button');
       button.type = 'button';
@@ -186,13 +231,21 @@
       button.addEventListener('click', function () { showFile(node.id, true); });
       item.appendChild(button);
       if (query) {
-        node.declarations.filter(function (declaration) {
-          return declaration.name.toLowerCase().indexOf(query) !== -1 || declaration.kind.toLowerCase().indexOf(query) !== -1;
-        }).forEach(function (declaration) {
-          var match = document.createElement('div');
-          match.textContent = declaration.kind + ' ' + declaration.name + ' · line ' + declaration.line;
-          item.appendChild(match);
+        match.declarations.slice(0, 20).forEach(function (declaration) {
+          var detail = document.createElement('div');
+          detail.textContent = declaration.kind + ' ' + declaration.name + ' · line ' + declaration.line;
+          item.appendChild(detail);
         });
+        match.methods.slice(0, 20).forEach(function (method) {
+          var detail = document.createElement('div');
+          detail.textContent = 'method ' + method.owner + '::' + method.name + ' · line ' + method.line;
+          item.appendChild(detail);
+        });
+        if (match.declarations.length > 20 || match.methods.length > 20) {
+          var notice = document.createElement('div');
+          notice.textContent = 'Only the first 20 matches of each kind are shown here.';
+          item.appendChild(notice);
+        }
       }
       files.appendChild(item);
     });
@@ -227,8 +280,11 @@
       if (file.size > 16 * 1024 * 1024) throw new Error('Report exceeds the 16 MiB limit.');
       var candidate = JSON.parse(await file.text());
       if (!valid(candidate)) throw new Error('This is not a supported LegacyLens report.');
+      var candidateMethodEvidence = LegacyMethodEvidence.read(candidate);
       if (currentRequest !== request) return;
       report = candidate;
+      methodEvidence = candidateMethodEvidence;
+      activeReport.textContent = 'Open report: ' + report.scan.rootLabel;
       filesById = new Map();
       report.nodes.forEach(function (node) { filesById.set(node.id, node); });
       selected = null;
@@ -242,6 +298,10 @@
       search.value = '';
       fileName.textContent = 'Select a file to see its details.';
       declarations.replaceChildren();
+      methods.replaceChildren();
+      calls.replaceChildren();
+      methodsStatus.textContent = 'Select a file to inspect method evidence.';
+      callsStatus.textContent = 'These are source expressions, not proof that a method ran.';
       references.replaceChildren();
       incoming.replaceChildren();
       renderReadingList();
@@ -254,7 +314,8 @@
       status.textContent = report.scan.rootLabel + ': ' + report.nodes.length + ' files, ' + report.edges.length +
         ' references. ' + incomplete + (incomplete === 1 ? ' file' : ' files') + ' not parsed cleanly. ' + warningSummary;
     } catch (error) {
-      if (currentRequest === request) status.textContent = 'Could not load report: ' + error.message;
+      if (currentRequest === request) status.textContent = 'Could not load report: ' + error.message +
+        (report ? ' The previous report is still open.' : ' Choose a valid LegacyLens report.');
     }
     input.value = '';
   });

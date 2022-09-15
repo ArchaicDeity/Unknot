@@ -20,7 +20,10 @@
             "@php tests/source-changes.php",
             "@php tests/source-concurrency.php",
             "@php tests/report-file.php",
-            "@php tests/syntax-cases.php"
+            "@php tests/syntax-cases.php",
+            "@php tests/method-extraction.php",
+            "@php tests/method-counterexamples.php",
+            "@php tests/method-evidence.php"
         ]
     }
 }

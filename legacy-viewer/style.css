@@ -4,7 +4,7 @@ body {
   color: #332e28;
   font: 16px/1.5 Arial, sans-serif;
 }
-main { max-width: 55rem; padding: 2rem; margin: auto; }
+main { max-width: 84rem; padding: 2rem; margin: auto; overflow-wrap: break-word; overflow-wrap: anywhere; }
 .masthead { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #a05b32; padding-bottom: 10px; }
 .masthead img { flex: none; }
 .masthead p { margin: 0; color: #6c5a49; font-size: 14px; }
@@ -15,6 +15,33 @@ label { display: block; font-weight: bold; margin: 1.5rem 0 .4rem; }
 input[type="search"] { box-sizing: border-box; max-width: 100%; padding: 6px; border: 1px solid #9c8b77; font: inherit; }
 li { margin: .5rem 0; overflow-wrap: anywhere; }
 button { font: inherit; color: #713216; cursor: pointer; }
+button:disabled { color: #71665c; cursor: default; }
 button[aria-pressed="true"] { font-weight: bold; background: #eee0c9; }
-button:focus-visible, input:focus-visible, h2:focus { outline: 3px solid #934624; outline-offset: 3px; }
+button:focus, input:focus, h2:focus { outline: 3px solid #934624; outline-offset: 3px; }
+.workspace { display: grid; grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr); gap: 2rem; }
+.navigator, .file-details { min-width: 0; }
+.file-details { border-left: 1px solid #c8bba8; padding-left: 2rem; }
+.workspace h2 { margin-top: 1.5rem; }
+#search { width: 100%; }
+#files, #reading-list, #declarations, #methods, #calls, #references, #incoming {
+  list-style: none;
+  padding: 0;
+  border: 1px solid #c8bba8;
+  background: #f8f3ea;
+}
+#files:empty, #reading-list:empty, #declarations:empty, #methods:empty, #calls:empty, #references:empty, #incoming:empty { display: none; }
+#files li, #reading-list li, #declarations li, #methods li, #calls li, #references li, #incoming li {
+  margin: 0;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid #ded3c2;
+}
+#files li:last-child, #reading-list li:last-child, #declarations li:last-child, #methods li:last-child, #calls li:last-child, #references li:last-child, #incoming li:last-child { border-bottom: 0; }
+#files li { padding: 0; }
+#files li > button { display: block; width: 100%; text-align: left; border: 0; padding: .6rem .75rem; background: transparent; overflow-wrap: anywhere; }
+#files li > div { padding: 0 .75rem .5rem; }
+#files li > button[aria-pressed="true"] { background: #ead5c1; }
+@media (max-width: 700px) {
+  .workspace { display: block; }
+  .file-details { border-left: 0; padding-left: 0; }
+}
 @media (max-width: 480px) { main { padding: 1rem; } }

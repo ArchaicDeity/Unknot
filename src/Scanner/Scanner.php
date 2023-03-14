@@ -8,8 +8,15 @@ use RuntimeException;
 
 final class Scanner
 {
-    public function __construct(private FileDiscovery $discovery, private Extractor $extractor)
+    public function __construct(
+        private FileDiscovery $discovery,
+        private IsolatedExtractor $extractor,
+        private float $timeLimitSeconds = 120.0
+    )
     {
+        if ($timeLimitSeconds <= 0) {
+            throw new RuntimeException('Scan timeout must be positive.');
+        }
     }
 
     public function scan(string $root, array $exclusions = []): array
@@ -23,6 +30,7 @@ final class Scanner
             throw new RuntimeException('The scan root must be an existing local directory.');
         }
 
+        $started = hrtime(true);
         $discovery = $this->discovery->discover($root, $exclusions);
         $files = $discovery['files'];
         $nodes = [];
@@ -36,12 +44,13 @@ final class Scanner
         $reader = new SourceReader($this->discovery);
         foreach ($files as $relative => $path) {
             $id = 'file:' . $relative;
-            $read = $reader->read($path, $root, $totalBytes, $discovery['identities'][$relative]);
-            $result = $read['source'] === null
-                ? ['state' => 'skipped', 'reason' => $read['reason'], 'declarations' => [], 'references' => []]
-                : $this->extractor->extract($read['source']);
-            if ($result['state'] === 'clean' && !(new MethodEvidenceValidator())->valid($result['methodEvidence'] ?? null, $result['declarations'], $read['source'])) {
-                $result = ['state' => 'failed', 'reason' => 'invalid-method-evidence', 'line' => null, 'declarations' => [], 'references' => []];
+            if ((hrtime(true) - $started) / 1000000000 >= $this->timeLimitSeconds) {
+                $result = ['state' => 'skipped', 'reason' => 'scan-time-limit', 'declarations' => [], 'references' => []];
+            } else {
+                $read = $reader->read($path, $root, $totalBytes, $discovery['identities'][$relative]);
+                $result = $read['source'] === null
+                    ? ['state' => 'skipped', 'reason' => $read['reason'], 'declarations' => [], 'references' => []]
+                    : $this->extractor->extract($read['source']);
             }
             $nodes[] = ['id' => $id, 'path' => $relative, 'kind' => 'file', 'parseState' => $result['state'], 'declarations' => $result['declarations']];
             $evidence = $result['state'] === 'clean' ? $result['methodEvidence'] : ['methods' => [], 'calls' => []];

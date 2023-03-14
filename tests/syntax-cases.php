@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use LegacyLens\Scanner\FileDiscovery;
 use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\IsolatedExtractor;
 use LegacyLens\Scanner\Scanner;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -38,7 +39,7 @@ try {
     foreach ($sources as $name => $source) {
         file_put_contents($root . '/' . $name, $source);
     }
-    $report = (new Scanner(new FileDiscovery(), new Extractor()))->scan($root);
+    $report = (new Scanner(new FileDiscovery(), new IsolatedExtractor()))->scan($root);
     $find = static function (string $type, ?string $name, string $reason) use ($report): array {
         return array_values(array_filter($report['edges'], static fn (array $edge): bool =>
             $edge['from'] === 'file:Consumer.php' && $edge['type'] === $type

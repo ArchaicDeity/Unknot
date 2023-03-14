@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 use LegacyLens\Report\JsonWriter;
-use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\IsolatedExtractor;
 use LegacyLens\Scanner\FileDiscovery;
 use LegacyLens\Scanner\Scanner;
 
@@ -40,7 +40,7 @@ if ($output === null || $output === '') {
 }
 
 try {
-    $scanner = new Scanner(new FileDiscovery(), new Extractor());
+    $scanner = new Scanner(new FileDiscovery(), new IsolatedExtractor());
     $report = $scanner->scan($root, $exclusions);
     (new JsonWriter())->write($report, $output, $root);
     $count = count($report['scan']['warnings']);

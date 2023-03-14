@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+use LegacyLens\Scanner\Extractor;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$address = getenv('LEGACYLENS_WORKER_ADDRESS');
+$token = getenv('LEGACYLENS_WORKER_TOKEN');
+if (!is_string($address) || !preg_match('/^127\.0\.0\.1:[0-9]{1,5}$/', $address)
+    || !is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+    exit(1);
+}
+$connection = @stream_socket_client('tcp://' . $address, $errorNumber, $errorMessage, 3);
+if ($connection === false) {
+    exit(1);
+}
+stream_set_timeout($connection, 10);
+
+function readBytes($connection, int $length): ?string
+{
+    $bytes = '';
+    while (strlen($bytes) < $length) {
+        $chunk = fread($connection, min(65536, $length - strlen($bytes)));
+        if ($chunk === false || $chunk === '') {
+            return null;
+        }
+        $bytes .= $chunk;
+    }
+    return $bytes;
+}
+
+function writeBytes($connection, string $bytes): bool
+{
+    $offset = 0;
+    while ($offset < strlen($bytes)) {
+        $count = fwrite($connection, substr($bytes, $offset, 65536));
+        if ($count === false || $count === 0) {
+            return false;
+        }
+        $offset += $count;
+    }
+    return true;
+}
+
+try {
+    if (!writeBytes($connection, $token . "\n")) {
+        exit(1);
+    }
+    $header = readBytes($connection, 4);
+    if ($header === null) {
+        exit(1);
+    }
+    $length = unpack('Nlength', $header)['length'];
+    if ($length > 2097152) {
+        exit(1);
+    }
+    $source = readBytes($connection, $length);
+    if ($source === null) {
+        exit(1);
+    }
+    $result = (new Extractor())->extract($source);
+    $json = json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (strlen($json) > 16777216 || !writeBytes($connection, pack('N', strlen($json)) . $json)) {
+        exit(1);
+    }
+} catch (Throwable $error) {
+    exit(1);
+} finally {
+    fclose($connection);
+}

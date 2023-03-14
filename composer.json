@@ -23,7 +23,10 @@
             "@php tests/syntax-cases.php",
             "@php tests/method-extraction.php",
             "@php tests/method-counterexamples.php",
-            "@php tests/method-evidence.php"
+            "@php tests/method-evidence.php",
+            "@php tests/method-worker-validation.php",
+            "@php tests/worker-connections.php",
+            "@php tests/worker-isolation.php"
         ]
     }
 }

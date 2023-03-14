@@ -4,7 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\IsolatedExtractor;
 use LegacyLens\Scanner\Scanner;
 
 function checkEvidence(bool $value, string $message): void
@@ -18,7 +18,7 @@ checkEvidence(mkdir($root, 0700), 'Could not create a private fixture directory.
 try {
     checkEvidence(copy($fixture . '/Methods.php', $root . '/Methods.php'), 'Could not copy the valid fixture.');
     checkEvidence(copy($fixture . '/Broken.php.fixture', $root . '/Broken.php'), 'Could not copy the invalid fixture.');
-    $report = (new Scanner(new FileDiscovery(), new Extractor()))->scan($root);
+    $report = (new Scanner(new FileDiscovery(), new IsolatedExtractor()))->scan($root);
     checkEvidence(!file_exists($root . '/CANARY_EXECUTED'), 'The scanned source was executed; the canary remains in ' . $root);
     $extension = $report['extensions']['legacyMethodEvidence'];
     checkEvidence($report['schemaVersion'] === 0 && $extension['version'] === 1, 'The optional schema-0 extension is missing.');

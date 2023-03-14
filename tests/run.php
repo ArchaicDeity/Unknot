@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use LegacyLens\Report\JsonWriter;
 use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\IsolatedExtractor;
 use LegacyLens\Scanner\FileDiscovery;
 use LegacyLens\Scanner\Scanner;
 
@@ -19,7 +20,7 @@ function check(bool $condition, string $message): void
 $fixture = dirname(__DIR__) . '/fixtures/sample-legacy-app';
 $canary = $fixture . '/CANARY_EXECUTED';
 check(!file_exists($canary), 'Remove the existing fixture canary before running this test.');
-$scanner = new Scanner(new FileDiscovery(), new Extractor());
+$scanner = new Scanner(new FileDiscovery(), new IsolatedExtractor());
 $report = $scanner->scan($fixture);
 check($report === $scanner->scan($fixture), 'Repeated scans must be deterministic.');
 check($report['scan']['fileCount'] === 3, 'Expected all fixture files.');

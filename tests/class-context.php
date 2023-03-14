@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\IsolatedExtractor;
 use LegacyLens\Scanner\FileDiscovery;
 use LegacyLens\Scanner\Scanner;
 
@@ -20,7 +21,7 @@ try {
     foreach ($sources as $name => $source) {
         file_put_contents($root . '/' . $name, $source);
     }
-    $report = (new Scanner(new FileDiscovery(), new Extractor()))->scan($root);
+    $report = (new Scanner(new FileDiscovery(), new IsolatedExtractor()))->scan($root);
     $find = static fn (string $syntax): array => array_values(array_filter($report['edges'], static fn (array $edge): bool =>
         $edge['from'] === 'file:Child.php' && ($edge['target']['syntax'] ?? null) === $syntax));
     $self = $find('self');

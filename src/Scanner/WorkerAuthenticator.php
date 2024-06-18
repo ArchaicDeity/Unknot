@@ -61,15 +61,20 @@ final class WorkerAuthenticator
                     if (!isset($pending[$id])) {
                         continue;
                     }
-                    $chunk = @fread($stream, 65 - strlen($pending[$id]['authentication']));
+                    $chunk = @fread($stream, 66 - strlen($pending[$id]['authentication']));
                     if ($chunk === false || ($chunk === '' && feof($stream))) {
                         fclose($stream);
                         unset($pending[$id]);
                         continue;
                     }
                     $pending[$id]['authentication'] .= $chunk;
-                    if (strlen($pending[$id]['authentication']) === 65) {
-                        if (hash_equals($token . "\n", $pending[$id]['authentication'])) {
+                    if (strlen($pending[$id]['authentication']) === 66) {
+                        $message = $pending[$id]['authentication'];
+                        if (hash_equals($token . "\n", substr($message, 0, 65)) && $message[65] === "\x00") {
+                            return ['client' => null, 'reason' => 'parser-resource-limit-unavailable'];
+                        }
+                        if (hash_equals($token . "\n", substr($message, 0, 65)) && $message[65] === "\x01") {
+                            // No source is sent until a candidate proves it holds this file's capability.
                             unset($pending[$id]);
                             return ['client' => $stream, 'reason' => null];
                         }

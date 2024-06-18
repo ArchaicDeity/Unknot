@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use LegacyLens\Scanner\Extractor;
+use LegacyLens\Scanner\WorkerMemoryLimit;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+
+$memoryLimit = new WorkerMemoryLimit();
+$limitApplied = $memoryLimit->apply();
 
 $address = getenv('LEGACYLENS_WORKER_ADDRESS');
 $token = getenv('LEGACYLENS_WORKER_TOKEN');
@@ -45,7 +49,12 @@ function writeBytes($connection, string $bytes): bool
 }
 
 try {
-    if (!writeBytes($connection, $token . "\n")) {
+    if (!writeBytes($connection, $token . "\n" . ($limitApplied ? "\x01" : "\x00"))) {
+        exit(1);
+    }
+    if (!$limitApplied) {
+        // Wait for the parent to close without sending source.
+        fread($connection, 1);
         exit(1);
     }
     $header = readBytes($connection, 4);

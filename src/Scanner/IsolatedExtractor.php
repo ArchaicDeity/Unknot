@@ -58,6 +58,10 @@ final class IsolatedExtractor
         $worker = dirname(__DIR__, 2) . '/bin/parser-worker';
         // Ignore inherited ini files: extensions can execute before prepend/append overrides apply.
         $command = [PHP_BINARY, '-n', '-d', 'memory_limit=128M', '-d', 'display_errors=0', '-d', 'log_errors=0'];
+        $ffi = dirname(PHP_BINARY) . '/ext/php_ffi.dll';
+        if (PHP_OS_FAMILY === 'Windows' && is_file($ffi)) {
+            $command = array_merge($command, ['-d', 'extension=' . $ffi, '-d', 'ffi.enable=true']);
+        }
         $command[] = $worker;
         $process = @proc_open($command, $descriptors, $pipes, null, $environment, ['bypass_shell' => true]);
         if (!is_resource($process)) {

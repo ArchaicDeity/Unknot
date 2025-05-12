@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\SourceReader;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\SourceReader;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-concurrent-' . bin2hex(random_bytes(8));
+$root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-concurrent-' . bin2hex(random_bytes(8));
 if (!mkdir($root)) {
     throw new RuntimeException('Could not create the concurrent source fixture.');
 }

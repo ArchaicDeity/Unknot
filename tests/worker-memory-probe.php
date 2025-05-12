@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\WorkerMemoryLimit;
+use Unknot\Scanner\WorkerMemoryLimit;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 

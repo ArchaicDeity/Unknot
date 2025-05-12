@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\WorkerAuthenticator;
+use Unknot\Scanner\WorkerAuthenticator;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -18,7 +18,7 @@ function startLimitWorker(bool $disableLimit): array
         throw new RuntimeException('Could not create a worker test listener.');
     }
     $token = bin2hex(random_bytes(32));
-    $environment = ['LEGACYLENS_WORKER_ADDRESS' => stream_socket_get_name($server, false), 'LEGACYLENS_WORKER_TOKEN' => $token];
+    $environment = ['UNKNOT_WORKER_ADDRESS' => stream_socket_get_name($server, false), 'UNKNOT_WORKER_TOKEN' => $token];
     foreach (['PATH', 'SystemRoot', 'WINDIR', 'TMP', 'TEMP'] as $name) {
         if (getenv($name) !== false) {
             $environment[$name] = getenv($name);

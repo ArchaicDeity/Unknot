@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 use FilesystemIterator;
 use RecursiveCallbackFilterIterator;

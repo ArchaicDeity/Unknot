@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Report\JsonWriter;
+use Unknot\Report\JsonWriter;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-output-' . bin2hex(random_bytes(8));
+$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-output-' . bin2hex(random_bytes(8));
 if (!mkdir($scratch)) {
     throw new RuntimeException('Could not create the report fixture directory.');
 }
@@ -21,7 +21,7 @@ try {
     if (PHP_OS_FAMILY !== 'Windows' && (fileperms($output) & 0077) !== 0) {
         throw new RuntimeException('The report must not grant group or other permissions on POSIX.');
     }
-    if (count(glob($scratch . '/.legacylens-*')) !== 0) {
+    if (count(glob($scratch . '/.unknot-*')) !== 0) {
         throw new RuntimeException('A successful report must not leave a temporary file.');
     }
     echo "Report file checks passed.\n";

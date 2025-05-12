@@ -8,7 +8,7 @@ if ($env:OS -ne 'Windows_NT') {
 
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
-$probe = [System.IO.Path]::GetFullPath((Join-Path $tempRoot ('legacylens-junction-' + [guid]::NewGuid().ToString('N'))))
+$probe = [System.IO.Path]::GetFullPath((Join-Path $tempRoot ('unknot-junction-' + [guid]::NewGuid().ToString('N'))))
 if (-not $probe.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Temporary test path is outside the expected directory.'
 }
@@ -24,7 +24,7 @@ Set-Content -LiteralPath (Join-Path $outsideDir 'Outside.php') -Value '<?php cla
 try {
     New-Item -ItemType Junction -Path $outsideLink -Target $outsideDir | Out-Null
     New-Item -ItemType Junction -Path $cycleLink -Target $inputDir | Out-Null
-    & $Php (Join-Path $repo 'bin/legacylens') scan $inputDir "--output=$output"
+    & $Php (Join-Path $repo 'bin/unknot') scan $inputDir "--output=$output"
     if ($LASTEXITCODE -ne 2) { throw 'Expected a warning exit for skipped junctions.' }
     $report = Get-Content -LiteralPath $output -Raw | ConvertFrom-Json
     if ($report.scan.fileCount -ne 1) { throw 'The scanner followed a junction.' }

@@ -31,9 +31,9 @@ $parser = (new PhpParser\ParserFactory())->create(PhpParser\ParserFactory::PREFE
 $traverser = new PhpParser\NodeTraverser();
 $traverser->addVisitor(new PhpParser\NodeVisitor\NameResolver());
 $traverser->addVisitor(new PhpParser\NodeVisitor\ParentConnectingVisitor());
-$evidence = (new LegacyLens\Scanner\MethodEvidence())->collect($traverser->traverse($parser->parse($source)));
-$declarations = (new LegacyLens\Scanner\Extractor())->extract($source)['declarations'];
-if (!(new LegacyLens\Scanner\MethodEvidenceValidator())->valid($evidence, $declarations, $source)) {
+$evidence = (new Unknot\Scanner\MethodEvidence())->collect($traverser->traverse($parser->parse($source)));
+$declarations = (new Unknot\Scanner\Extractor())->extract($source)['declarations'];
+if (!(new Unknot\Scanner\MethodEvidenceValidator())->valid($evidence, $declarations, $source)) {
     throw new RuntimeException('Valid counterexample evidence failed validation.');
 }
 if (count($evidence['calls']) !== 6) throw new RuntimeException('Unexpected call count, including callable creation.');

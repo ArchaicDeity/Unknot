@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\IsolatedExtractor;
-use LegacyLens\Scanner\WorkerAuthenticator;
+use Unknot\Scanner\IsolatedExtractor;
+use Unknot\Scanner\WorkerAuthenticator;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 

@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Report\JsonWriter;
-use LegacyLens\Scanner\IsolatedExtractor;
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\Scanner;
+use Unknot\Report\JsonWriter;
+use Unknot\Scanner\IsolatedExtractor;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\Scanner;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (!is_file($autoload)) {
@@ -18,7 +18,7 @@ require $autoload;
 $arguments = $argv;
 array_shift($arguments);
 if (count($arguments) < 2 || $arguments[0] !== 'scan') {
-    fwrite(STDERR, "Usage: php bin/legacylens scan <directory> --output=<report.json> [--exclude=<path>]\n");
+    fwrite(STDERR, "Usage: php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>]\n");
     exit(1);
 }
 $root = $arguments[1];

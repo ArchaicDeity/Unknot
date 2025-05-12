@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\IsolatedExtractor;
-use LegacyLens\Scanner\Scanner;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\IsolatedExtractor;
+use Unknot\Scanner\Scanner;
 
 function checkEvidence(bool $value, string $message): void
 {

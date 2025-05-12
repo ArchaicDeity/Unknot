@@ -1,5 +1,5 @@
 {
-    "name": "legacylens/legacylens",
+    "name": "unknot/unknot",
     "description": "A local architecture explorer for PHP projects.",
     "type": "project",
     "require": {
@@ -8,7 +8,7 @@
     },
     "autoload": {
         "psr-4": {
-            "LegacyLens\\": "src/"
+            "Unknot\\": "src/"
         }
     },
     "scripts": {

@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use LegacyLens\Scanner\Extractor;
-use LegacyLens\Scanner\IsolatedExtractor;
+use Unknot\Scanner\Extractor;
+use Unknot\Scanner\IsolatedExtractor;
 
 $source = '<?php final class Example { public static function run(): void {} public function test(): void { Example::run(); } }';
 $result = (new Extractor())->extract($source);

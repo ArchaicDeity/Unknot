@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\Extractor;
-use LegacyLens\Scanner\IsolatedExtractor;
-use LegacyLens\Scanner\Scanner;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\Extractor;
+use Unknot\Scanner\IsolatedExtractor;
+use Unknot\Scanner\Scanner;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-syntax-' . bin2hex(random_bytes(8));
+$root = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-syntax-' . bin2hex(random_bytes(8));
 if (!mkdir($root)) {
     throw new RuntimeException('Could not create the syntax fixture.');
 }

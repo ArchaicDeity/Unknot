@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 /** Validates worker evidence before it can enter a report. */
 final class MethodEvidenceValidator

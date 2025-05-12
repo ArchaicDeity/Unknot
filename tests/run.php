@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Report\JsonWriter;
-use LegacyLens\Scanner\Extractor;
-use LegacyLens\Scanner\IsolatedExtractor;
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\Scanner;
+use Unknot\Report\JsonWriter;
+use Unknot\Scanner\Extractor;
+use Unknot\Scanner\IsolatedExtractor;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\Scanner;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -65,7 +65,7 @@ foreach (['https://example.invalid/repo', '\\\\server\\share'] as $remoteRoot) {
     }
 }
 
-$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-' . bin2hex(random_bytes(8));
+$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-' . bin2hex(random_bytes(8));
 check(mkdir($scratch), 'Could not create the temporary fixture.');
 $scratchFiles = ['first.php', 'second.php', 'reference.php', 'broken.php', 'oversized.php', 'include.php'];
 try {
@@ -95,7 +95,7 @@ try {
     rmdir($scratch);
 }
 
-$output = tempnam(sys_get_temp_dir(), 'legacylens-test-');
+$output = tempnam(sys_get_temp_dir(), 'unknot-test-');
 check($output !== false, 'Could not allocate a test report.');
 try {
     file_put_contents($output, 'previous report');

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 /** A best-effort change marker, not an atomic filesystem snapshot. */
 final class FileIdentity

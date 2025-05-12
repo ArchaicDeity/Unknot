@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\FileDiscovery;
-use LegacyLens\Scanner\FileIdentity;
-use LegacyLens\Scanner\SourceReader;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\FileIdentity;
+use Unknot\Scanner\SourceReader;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -15,7 +15,7 @@ function checkSource(bool $condition, string $message): void
     }
 }
 
-$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-source-' . bin2hex(random_bytes(8));
+$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-source-' . bin2hex(random_bytes(8));
 $root = $scratch . '/input';
 $source = $root . '/Example.php';
 $replacement = $scratch . '/replacement.tmp';

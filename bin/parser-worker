@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use LegacyLens\Scanner\Extractor;
-use LegacyLens\Scanner\WorkerMemoryLimit;
+use Unknot\Scanner\Extractor;
+use Unknot\Scanner\WorkerMemoryLimit;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $memoryLimit = new WorkerMemoryLimit();
 $limitApplied = $memoryLimit->apply();
 
-$address = getenv('LEGACYLENS_WORKER_ADDRESS');
-$token = getenv('LEGACYLENS_WORKER_TOKEN');
+$address = getenv('UNKNOT_WORKER_ADDRESS');
+$token = getenv('UNKNOT_WORKER_TOKEN');
 if (!is_string($address) || !preg_match('/^127\.0\.0\.1:[0-9]{1,5}$/', $address)
     || !is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
     exit(1);

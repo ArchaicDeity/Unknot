@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 /** Bounds line lookup work even when a worker returns many source offsets. */
 final class SourceLineIndex

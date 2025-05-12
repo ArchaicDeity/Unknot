@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 function runScanner(string $root, string $output): array
 {
-    $command = [PHP_BINARY, dirname(__DIR__) . '/bin/legacylens', 'scan', $root, '--output=' . $output];
+    $command = [PHP_BINARY, dirname(__DIR__) . '/bin/unknot', 'scan', $root, '--output=' . $output];
     $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
     $process = proc_open($command, $descriptors, $pipes, null, null, ['bypass_shell' => true]);
     if (!is_resource($process)) {
@@ -18,7 +18,7 @@ function runScanner(string $root, string $output): array
     return ['exit' => proc_close($process), 'stdout' => $stdout, 'stderr' => $stderr];
 }
 
-$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'legacylens-cli-' . bin2hex(random_bytes(8));
+$scratch = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'unknot-cli-' . bin2hex(random_bytes(8));
 $root = $scratch . '/input';
 $good = $root . '/Good.php';
 $bad = $root . '/Bad.php';

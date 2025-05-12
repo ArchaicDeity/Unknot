@@ -29,7 +29,7 @@ $traverser = new PhpParser\NodeTraverser();
 $traverser->addVisitor(new PhpParser\NodeVisitor\NameResolver());
 $traverser->addVisitor(new PhpParser\NodeVisitor\ParentConnectingVisitor());
 $nodes = $traverser->traverse($parser->parse($source));
-$result = (new LegacyLens\Scanner\MethodEvidence())->collect($nodes);
+$result = (new Unknot\Scanner\MethodEvidence())->collect($nodes);
 if (count($result['methods']) !== 3 || count($result['calls']) !== 4) {
     throw new RuntimeException('Direct methods or static call evidence were not bounded as expected.');
 }
@@ -44,8 +44,8 @@ foreach ($result['calls'] as $call) {
         throw new RuntimeException('Unconfirmed calls must not acquire a target.');
     }
 }
-$declarations = (new LegacyLens\Scanner\Extractor())->extract($source)['declarations'];
-$validator = new LegacyLens\Scanner\MethodEvidenceValidator();
+$declarations = (new Unknot\Scanner\Extractor())->extract($source)['declarations'];
+$validator = new Unknot\Scanner\MethodEvidenceValidator();
 if (!$validator->valid($result, $declarations, $source)) {
     throw new RuntimeException('Valid parser evidence was rejected.');
 }
@@ -62,7 +62,7 @@ $bad = $result;
 $bad['calls'][0]['caller']['method'] = 'invented';
 if ($validator->valid($bad, $declarations, $source)) throw new RuntimeException('Invented caller was accepted.');
 $padded = "<?php\n" . str_repeat("\n", 4100) . 'final class Padded { public static function run() { Padded::run(); } }';
-$paddedResult = (new LegacyLens\Scanner\Extractor())->extract($padded);
+$paddedResult = (new Unknot\Scanner\Extractor())->extract($padded);
 if (!$validator->valid($paddedResult['methodEvidence'], $paddedResult['declarations'], $padded)) {
     throw new RuntimeException('Valid positions across a line-index block boundary were rejected.');
 }

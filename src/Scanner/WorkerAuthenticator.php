@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 /** Authenticates bounded, concurrent local connections before source is sent. */
 final class WorkerAuthenticator

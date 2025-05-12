@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Report;
+namespace Unknot\Report;
 
-use LegacyLens\Scanner\FileDiscovery;
+use Unknot\Scanner\FileDiscovery;
 use RuntimeException;
 
 final class JsonWriter
@@ -44,7 +44,7 @@ final class JsonWriter
 
     private function writeAtomically(string $parent, string $target, string $json, bool $incomplete): void
     {
-        $temporary = $parent . DIRECTORY_SEPARATOR . '.legacylens-' . bin2hex(random_bytes(16));
+        $temporary = $parent . DIRECTORY_SEPARATOR . '.unknot-' . bin2hex(random_bytes(16));
         // The file is created exclusively and kept open while writing, so a later path swap cannot redirect the write.
         $oldMask = umask(0077);
         try {

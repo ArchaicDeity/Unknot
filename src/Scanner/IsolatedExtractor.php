@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LegacyLens\Scanner;
+namespace Unknot\Scanner;
 
 use RuntimeException;
 
@@ -51,8 +51,8 @@ final class IsolatedExtractor
                 $environment[$key] = $value;
             }
         }
-        $environment['LEGACYLENS_WORKER_ADDRESS'] = $this->address;
-        $environment['LEGACYLENS_WORKER_TOKEN'] = $token;
+        $environment['UNKNOT_WORKER_ADDRESS'] = $this->address;
+        $environment['UNKNOT_WORKER_TOKEN'] = $token;
         $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
         $descriptors = [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']];
         $worker = dirname(__DIR__, 2) . '/bin/parser-worker';

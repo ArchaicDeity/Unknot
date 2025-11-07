@@ -25,3 +25,5 @@ php tests/check-open-source.php reports
 ```
 
 This checks a few known relationships and explicit unsupported Hack fixtures; it is not a measure of complete dependency coverage.
+
+On Windows, run `pwsh ./tests/windows-junction.ps1` and `pwsh ./tests/windows-report-acl.ps1` for additional junction and report-permission checks.

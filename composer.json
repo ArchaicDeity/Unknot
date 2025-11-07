@@ -27,7 +27,9 @@
             "@php tests/method-worker-validation.php",
             "@php tests/worker-connections.php",
             "@php tests/worker-isolation.php",
-            "@php tests/worker-limits.php"
+            "@php tests/worker-limits.php",
+            "@php tests/report-concurrency.php",
+            "@php tests/report-interruption.php"
         ]
     }
 }

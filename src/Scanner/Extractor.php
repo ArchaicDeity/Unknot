@@ -81,6 +81,8 @@ final class Extractor
             }
         }
 
+        usort($references, static fn (array $a, array $b): int => [$a['startOffset'], $a['endOffset'], $a['type']] <=> [$b['startOffset'], $b['endOffset'], $b['type']]);
+
         return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,
             'methodEvidence' => (new MethodEvidence())->collect($nodes)];
     }

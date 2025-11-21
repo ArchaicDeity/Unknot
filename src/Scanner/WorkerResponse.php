@@ -48,6 +48,7 @@ final class WorkerResponse
         }
         $index = new SourceLineIndex($source);
         $references = [];
+        $lastOffset = 0;
         foreach ($result['references'] as $reference) {
             if (!($reference instanceof stdClass)) return null;
             $reference = (array) $reference;
@@ -55,9 +56,10 @@ final class WorkerResponse
                 || !array_key_exists('name', $reference) || ($reference['name'] !== null && !is_string($reference['name']))
                 || (is_string($reference['name']) && strlen($reference['name']) > 4096)
                 || !$this->line($reference['line'] ?? null, $maxLine) || !is_int($reference['startOffset'] ?? null)
-                || !is_int($reference['endOffset'] ?? null) || $reference['startOffset'] < 0
+                || !is_int($reference['endOffset'] ?? null) || $reference['startOffset'] < $lastOffset
                 || $reference['endOffset'] <= $reference['startOffset'] || $reference['endOffset'] > strlen($source)
                 || $reference['line'] !== $index->lineAt($reference['startOffset'])) return null;
+            $lastOffset = $reference['startOffset'];
             $type = $reference['type'];
             if (($type !== 'include' && $reference['name'] === '')
                 || (in_array($type, ['extends', 'implements', 'trait-use'], true) && !is_string($reference['name']))) return null;

@@ -126,7 +126,7 @@ final class JsonWriter
             }
         }
         foreach ($report['scan']['warnings'] ?? [] as $warning) {
-            if (($warning['code'] ?? null) === 'link-or-outside-root-skipped') {
+            if (in_array($warning['code'] ?? null, ['link-or-outside-root-skipped', 'not-regular-file'], true)) {
                 return true;
             }
         }

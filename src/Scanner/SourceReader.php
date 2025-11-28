@@ -25,6 +25,17 @@ final class SourceReader
         if ($identity === false) {
             return ['source' => null, 'reason' => 'file-changed'];
         }
+        // Reject a path that has already become a special file before opening it.
+        $pathStat = @lstat($path);
+        if ($pathStat === false) {
+            return ['source' => null, 'reason' => 'file-unavailable'];
+        }
+        if (($pathStat['mode'] & 0170000) !== 0100000) {
+            return ['source' => null, 'reason' => 'not-regular-file'];
+        }
+        if (FileIdentity::fromStat($pathStat) !== $identity) {
+            return ['source' => null, 'reason' => 'file-changed'];
+        }
         $handle = @fopen($path, 'rb');
         if ($handle === false) {
             return ['source' => null, 'reason' => 'file-unreadable'];

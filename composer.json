@@ -30,7 +30,8 @@
             "@php tests/worker-limits.php",
             "@php tests/report-concurrency.php",
             "@php tests/report-interruption.php",
-            "@php tests/worker-response.php"
+            "@php tests/worker-response.php",
+            "@php tests/source-special-file.php"
         ]
     }
 }

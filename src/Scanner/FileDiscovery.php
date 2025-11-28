@@ -47,7 +47,15 @@ final class FileDiscovery
                     return true;
                 }
 
-                return $entry->isFile() && in_array(strtolower($entry->getExtension()), ['php', 'phtml', 'inc'], true);
+                $sourceExtension = in_array(strtolower($entry->getExtension()), ['php', 'phtml', 'inc'], true);
+                if ($sourceExtension && !$entry->isFile()) {
+                    $warnings[] = ['fileId' => 'file:' . $relative, 'code' => 'not-regular-file', 'line' => null];
+                    if (count($warnings) > 5000) {
+                        throw new RuntimeException('The scan exceeds the diagnostic limit.');
+                    }
+                    return false;
+                }
+                return $sourceExtension;
             }
         );
 

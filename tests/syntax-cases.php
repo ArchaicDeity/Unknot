@@ -63,9 +63,8 @@ try {
         throw new RuntimeException('Conditional and dynamic construction must remain unresolved.');
     }
     $literal = $find('include', null, 'source-relative-include');
-    if (count($literal) !== 1 || $literal[0]['to'] !== 'file:Definitions.php' || $literal[0]['confidence'] !== 'heuristic'
-        || count($find('include', null, 'include-target-not-resolved')) !== 1
-        || count($find('include', null, 'dynamic-expression')) !== 1) {
+    if (count($literal) !== 2 || count(array_filter($literal, static fn (array $edge): bool => $edge['to'] === 'file:Definitions.php' && $edge['confidence'] === 'heuristic')) !== 2
+        || count($find('include', null, 'include-target-not-resolved')) !== 1) {
         throw new RuntimeException('Literal and dynamic include uncertainty must remain visible.');
     }
     if (count($find('instantiation', 'Consumer\\Child', 'named-symbol')) !== 1

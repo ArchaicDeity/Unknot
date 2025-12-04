@@ -47,7 +47,7 @@ final class Extractor
         }
         foreach ($finder->find($nodes, static fn (Node $node): bool => $node instanceof Node\Expr\New_ || $node instanceof Node\Expr\StaticCall || $node instanceof Node\Expr\Include_) as $node) {
             if ($node instanceof Node\Expr\Include_) {
-                $references[] = ['type' => 'include', 'name' => $node->expr instanceof Node\Scalar\String_ ? $node->expr->value : null, 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
+                $references[] = ['type' => 'include', 'name' => (new IncludeExpression())->path($node->expr), 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
                 continue;
             }
             $reference = ['type' => $node instanceof Node\Expr\New_ ? 'instantiation' : 'static-call', 'name' => $node->class instanceof Node\Name ? $node->class->toString() : null, 'line' => $node->getStartLine(), 'startOffset' => $node->getStartFilePos(), 'endOffset' => $node->getEndFilePos() + 1];
@@ -56,7 +56,6 @@ final class Extractor
             }
             $references[] = $this->addClassContext($node, $reference);
         }
-
         foreach ($finder->findInstanceOf($nodes, Node\Stmt\Class_::class) as $node) {
             if ($node->extends !== null) {
                 $references[] = $this->namedReference('extends', $node->extends, 'class');
@@ -80,7 +79,6 @@ final class Extractor
                 $references[] = $this->namedReference('trait-use', $name, 'trait');
             }
         }
-
         usort($references, static fn (array $a, array $b): int => [$a['startOffset'], $a['endOffset'], $a['type']] <=> [$b['startOffset'], $b['endOffset'], $b['type']]);
 
         return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,

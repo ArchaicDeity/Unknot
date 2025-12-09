@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Unknot\Scanner;
 
 use PhpParser\Error;
-use PhpParser\Lexer\Emulative;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
@@ -20,8 +19,7 @@ final class Extractor
         if (preg_match('/^\s*<\?hh(?:\s|$)/', $source) === 1) {
             return ['state' => 'failed', 'reason' => 'unsupported-hack-syntax', 'line' => 1, 'declarations' => [], 'references' => []];
         }
-        $lexer = new Emulative(['usedAttributes' => ['startLine', 'endLine', 'startFilePos', 'endFilePos']]);
-        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7, $lexer);
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
         try {
             $nodes = $parser->parse($source) ?? [];
             $traverser = new NodeTraverser();

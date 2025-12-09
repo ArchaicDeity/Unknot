@@ -26,8 +26,7 @@ class Duplicate { public static function same() {} }
 enum ExampleEnum { public function excluded() {} }
 Duplicate::same();
 PHP;
-$lexer = new PhpParser\Lexer\Emulative(['usedAttributes' => ['startLine', 'endLine', 'startFilePos', 'endFilePos']]);
-$parser = (new PhpParser\ParserFactory())->create(PhpParser\ParserFactory::PREFER_PHP7, $lexer);
+$parser = (new PhpParser\ParserFactory())->createForNewestSupportedVersion();
 $traverser = new PhpParser\NodeTraverser();
 $traverser->addVisitor(new PhpParser\NodeVisitor\NameResolver());
 $traverser->addVisitor(new PhpParser\NodeVisitor\ParentConnectingVisitor());

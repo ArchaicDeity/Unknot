@@ -23,8 +23,7 @@ class Example implements Contract {
 }
 new class { public function hidden() {} };
 PHP;
-$lexer = new PhpParser\Lexer\Emulative(['usedAttributes' => ['startLine', 'endLine', 'startFilePos', 'endFilePos']]);
-$parser = (new PhpParser\ParserFactory())->create(PhpParser\ParserFactory::PREFER_PHP7, $lexer);
+$parser = (new PhpParser\ParserFactory())->createForNewestSupportedVersion();
 $traverser = new PhpParser\NodeTraverser();
 $traverser->addVisitor(new PhpParser\NodeVisitor\NameResolver());
 $traverser->addVisitor(new PhpParser\NodeVisitor\ParentConnectingVisitor());
@@ -66,4 +65,4 @@ $paddedResult = (new Unknot\Scanner\Extractor())->extract($padded);
 if (!$validator->valid($paddedResult['methodEvidence'], $paddedResult['declarations'], $padded)) {
     throw new RuntimeException('Valid positions across a line-index block boundary were rejected.');
 }
-echo "PHP 8.1 method evidence probe passed; callable creation and anonymous methods were excluded.\n";
+echo "Method evidence checks passed; callable creation and anonymous methods were excluded.\n";

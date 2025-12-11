@@ -42,7 +42,7 @@ final class ReferenceResolver
                     $reason = 'named-symbol';
                 }
             } else {
-                // Multiple or conditional declarations cannot establish a single runtime target.
+                // ⟡ Multiple or conditional declarations cannot establish a single runtime target.
                 $reason = count($declarations) > 1 ? 'ambiguous-symbol'
                     : (count($declarations) === 1 ? 'conditional-symbol' : 'symbol-not-found');
             }

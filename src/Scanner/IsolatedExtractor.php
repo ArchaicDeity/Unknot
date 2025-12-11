@@ -56,7 +56,7 @@ final class IsolatedExtractor
         $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
         $descriptors = [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']];
         $worker = dirname(__DIR__, 2) . '/bin/parser-worker';
-        // Ignore inherited ini files: extensions can execute before prepend/append overrides apply.
+        // ⟡ Ignore inherited ini files: extensions can execute before prepend/append overrides apply.
         $command = [PHP_BINARY, '-n', '-d', 'memory_limit=128M', '-d', 'display_errors=0', '-d', 'log_errors=0'];
         $ffi = dirname(PHP_BINARY) . '/ext/php_ffi.dll';
         if (PHP_OS_FAMILY === 'Windows' && is_file($ffi)) {

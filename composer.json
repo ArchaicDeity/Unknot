@@ -14,26 +14,26 @@
     "scripts": {
         "test": [
             "@php tests/run.php",
+            "@php tests/source-changes.php",
+            "@php tests/source-special-file.php",
+            "@php tests/source-concurrency.php",
             "@php tests/symbol-kinds.php",
             "@php tests/class-context.php",
-            "@php tests/cli-smoke.php",
-            "@php tests/source-changes.php",
-            "@php tests/source-concurrency.php",
-            "@php tests/report-file.php",
             "@php tests/syntax-cases.php",
             "@php tests/method-extraction.php",
             "@php tests/method-counterexamples.php",
             "@php tests/method-evidence.php",
             "@php tests/method-worker-validation.php",
+            "@php tests/include-expressions.php",
+            "@php tests/source-versions.php",
             "@php tests/worker-connections.php",
             "@php tests/worker-isolation.php",
             "@php tests/worker-limits.php",
-            "@php tests/report-concurrency.php",
-            "@php tests/report-interruption.php",
             "@php tests/worker-response.php",
-            "@php tests/source-special-file.php",
-            "@php tests/include-expressions.php",
-            "@php tests/source-versions.php"
+            "@php tests/report-file.php",
+            "@php tests/report-interruption.php",
+            "@php tests/report-concurrency.php",
+            "@php tests/cli-smoke.php"
         ]
     }
 }

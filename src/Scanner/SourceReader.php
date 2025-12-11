@@ -55,7 +55,7 @@ final class SourceReader
         }
         clearstatcache(true, $path);
         $current = @stat($path);
-        // Compare both the open handle and the path: replacement can leave the handle pointing at an old file.
+        // ⟡ Compare both the open handle and the path: replacement can leave the handle pointing at an old file.
         if ($after === false || $current === false || FileIdentity::fromStat($after) !== $identity
             || FileIdentity::fromStat($current) !== $identity || realpath($path) !== $resolved || is_link($path)) {
             return ['source' => null, 'reason' => 'file-changed'];

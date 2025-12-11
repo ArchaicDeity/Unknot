@@ -45,7 +45,7 @@ final class JsonWriter
     private function writeAtomically(string $parent, string $target, string $json, bool $incomplete): void
     {
         $temporary = $parent . DIRECTORY_SEPARATOR . '.unknot-' . bin2hex(random_bytes(16));
-        // The file is created exclusively and kept open while writing, so a later path swap cannot redirect the write.
+        // ⟡ The file is created exclusively and kept open while writing, so a later path swap cannot redirect the write.
         $oldMask = umask(0077);
         try {
             $handle = @fopen($temporary, 'x+b');

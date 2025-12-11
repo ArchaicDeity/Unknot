@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Unknot\Scanner\Extractor;
 use Unknot\Scanner\IsolatedExtractor;
 use Unknot\Scanner\FileDiscovery;
 use Unknot\Scanner\Scanner;

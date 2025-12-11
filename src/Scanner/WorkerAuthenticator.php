@@ -74,7 +74,7 @@ final class WorkerAuthenticator
                             return ['client' => null, 'reason' => 'parser-resource-limit-unavailable'];
                         }
                         if (hash_equals($token . "\n", substr($message, 0, 65)) && $message[65] === "\x01") {
-                            // No source is sent until a candidate proves it holds this file's capability.
+                            // ⟡ No source is sent until a candidate proves it holds this file's capability.
                             unset($pending[$id]);
                             return ['client' => $stream, 'reason' => null];
                         }

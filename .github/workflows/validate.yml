@@ -1,0 +1,52 @@
+name: Validate PHP foundation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          docker run --rm -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
+            -v "$PWD:/app" -w /app --entrypoint sh \
+            composer@sha256:43c0750c8ecd260b10e4511ccb943c97fb3660cf0ed9d10a1cc7e4174ba67a9a \
+            -c 'composer --no-cache install --no-interaction --no-scripts --prefer-dist && cp /usr/bin/composer /app/.composer-ci.phar'
+      - name: Test on PHP 8.1.8
+        run: |
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,noexec,size=128m -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
+            -v "$PWD:/app:ro" -w /app --entrypoint sh \
+            php@sha256:ad5e56e971853a682ddb0b600ca47c4141f1dd38827d093a142bd0e86f0fa480 \
+            -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1
+        with:
+          php-version: '8.1'
+          tools: composer:2.3.10
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --no-scripts --prefer-dist
+      - name: Test
+        run: composer test
+      - name: Windows filesystem checks
+        shell: pwsh
+        run: |
+          ./tests/windows-junction.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./tests/windows-report-acl.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

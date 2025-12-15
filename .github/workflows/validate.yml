@@ -41,8 +41,12 @@ jobs:
           coverage: none
       - name: Install dependencies
         run: composer install --no-interaction --no-scripts --prefer-dist
+        env:
+          COMPOSER_HOME: ${{ runner.temp }}\unknot-composer
       - name: Test
         run: composer test
+        env:
+          COMPOSER_HOME: ${{ runner.temp }}\unknot-composer
       - name: Windows filesystem checks
         shell: pwsh
         run: |

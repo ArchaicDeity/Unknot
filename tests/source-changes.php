@@ -39,11 +39,11 @@ try {
     file_put_contents($source, '<?php class Original {}');
     $snapshot = $discovery->discover(realpath($root));
     $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
-    $writer = proc_open([PHP_BINARY, '-n', '-r', 'file_put_contents($argv[1], "<?php class ConcurrentChange {} ");', $source], [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes, null, null, ['bypass_shell' => true]);
+    $writer = proc_open([PHP_BINARY, '-n', '-r', 'exit(file_put_contents($argv[1], "<?php class ConcurrentChange {} ") === false ? 1 : 0);', $source], [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes, null, null, ['bypass_shell' => true]);
     checkSource(is_resource($writer), 'Could not start the concurrent writer.');
     checkSource(proc_close($writer) === 0, 'The concurrent writer failed.');
     $changed = $reader->read($source, realpath($root), $bytes, $snapshot['identities']['Example.php']);
-    checkSource($changed['source'] === null && $changed['reason'] === 'file-changed', 'A separate-process edit must be reported.');
+    checkSource($changed['source'] === null && $changed['reason'] === 'file-changed', 'A separate-process edit must be reported: ' . json_encode(['reason' => $changed['reason'], 'sourceLength' => $changed['source'] === null ? null : strlen($changed['source']), 'discoveredSize' => $snapshot['identities']['Example.php'][3]]));
 
     $sibling = $scratch . '/input-extra.php';
     file_put_contents($sibling, '<?php class OutsideRoot {}');

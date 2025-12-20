@@ -42,7 +42,7 @@ try {
     $writer = proc_open([PHP_BINARY, '-n', '-r', 'exit(file_put_contents($argv[1], "<?php class ConcurrentChange {} ") === false ? 1 : 0);', $source], [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes, null, null, ['bypass_shell' => true]);
     checkSource(is_resource($writer), 'Could not start the concurrent writer.');
     checkSource(proc_close($writer) === 0, 'The concurrent writer failed.');
-    $changed = $reader->read($source, realpath($root), $bytes, $snapshot['identities']['Example.php']);
+    $changed = $reader->read($snapshot['files']['Example.php'], realpath($root), $bytes, $snapshot['identities']['Example.php']);
     checkSource($changed['source'] === null && $changed['reason'] === 'file-changed', 'A separate-process edit must be reported: ' . json_encode(['reason' => $changed['reason'], 'sourceLength' => $changed['source'] === null ? null : strlen($changed['source']), 'discoveredSize' => $snapshot['identities']['Example.php'][3]]));
 
     $sibling = $scratch . '/input-extra.php';
@@ -70,7 +70,7 @@ try {
     clearstatcache(true, $source);
     $current = FileIdentity::fromStat(stat($source));
     if ($current !== $snapshot['identities']['Example.php']) {
-        $changed = $reader->read($source, realpath($root), $bytes, $snapshot['identities']['Example.php']);
+        $changed = $reader->read($snapshot['files']['Example.php'], realpath($root), $bytes, $snapshot['identities']['Example.php']);
         checkSource($changed['source'] === null && $changed['reason'] === 'file-changed', 'A detectable same-size replacement must be rejected.');
     } else {
         echo "Same-size replacement check skipped: filesystem metadata did not distinguish the files.\n";
@@ -80,7 +80,7 @@ try {
     file_put_contents($outside, '<?php class Outside {}');
     checkSource(unlink($source), 'Could not remove the source fixture.');
     if (@symlink($outside, $source)) {
-        $linked = $reader->read($source, realpath($root), $bytes, $snapshot['identities']['Example.php']);
+        $linked = $reader->read($snapshot['files']['Example.php'], realpath($root), $bytes, $snapshot['identities']['Example.php']);
         checkSource($linked['source'] === null && $linked['reason'] === 'file-unavailable', 'A source replaced by an outside link must be rejected.');
     } else {
         echo "Source symlink replacement check skipped: symbolic links are unavailable.\n";

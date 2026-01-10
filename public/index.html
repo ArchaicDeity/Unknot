@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unknot — Architecture explorer</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand"><span class="brand-mark" aria-hidden="true">⌁</span> unknot<span class="brand-dot">.</span></a>
+    <span class="topbar-note">LOCAL ARCHITECTURE EXPLORER</span>
+    <label class="import-button" for="import">Open report<input id="import" type="file" accept=".json,application/json" class="visually-hidden"></label>
+  </header>
+  <main class="shell">
+    <div class="intro"><div><p class="eyebrow">YOUR CODE, IN CONTEXT</p><h1>Untangle the unfamiliar.</h1><p class="muted">A clearer view of the relationships inside your PHP project.</p></div><div class="local-badge"><span class="dot"></span> LOCAL SESSION</div></div>
+    <div id="message" class="message" role="status" aria-live="polite">Loading the selected report…</div>
+    <noscript><p>This explorer needs JavaScript. The CLI report is available as JSON.</p></noscript>
+    <section id="dashboard" hidden>
+      <div class="report-heading"><div><p class="eyebrow">CURRENT REPORT</p><h2 id="project-name"></h2><p class="muted">Static evidence, with uncertainty left visible.</p></div><div class="actions"><button id="export-json" class="button subtle">Export JSON</button><button id="export-summary" class="button subtle">Export summary</button></div></div>
+      <div class="stats" aria-label="Report summary"><div><span>FILES</span><strong id="file-count">0</strong></div><div><span>REFERENCES</span><strong id="edge-count">0</strong></div><div><span>UNRESOLVED</span><strong id="unresolved-count">0</strong></div><div><span>DB INDICATORS</span><strong id="finding-count">0</strong></div></div>
+      <div class="workspace">
+        <section class="panel explorer" aria-labelledby="explorer-title">
+          <div class="panel-head"><div><p class="eyebrow">EXPLORE</p><h2 id="explorer-title">Connections</h2></div><span class="chip">FILE LEVEL</span></div>
+          <div class="controls"><label>Search files <input id="search" type="search" placeholder="e.g. Orders.php" autocomplete="off"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
+          <div class="graph-wrap"><div class="graph-label"><span>DEPENDENCY MAP</span><span>SELECT A FILE TO EXPLORE</span></div><div id="graph" aria-label="Dependency graph"></div><p id="graph-status" class="graph-status"></p></div>
+          <div class="list-title"><h3>Files</h3><span id="list-count" class="muted"></span></div><div id="files" class="file-list" aria-label="File list"></div>
+        </section>
+        <aside class="panel details" aria-labelledby="details-title"><div class="panel-head"><div><p class="eyebrow">INSPECT</p><h2 id="details-title">File details</h2></div><span class="chip">EVIDENCE</span></div><div id="details"><p class="empty">Select a file to see its declarations and connections.</p></div></aside>
+      </div>
+      <section class="panel hotspots" aria-labelledby="hotspots-title"><div class="panel-head"><div><p class="eyebrow">WHERE TO LOOK</p><h2 id="hotspots-title">Hotspots</h2><p class="muted">A navigation aid, not a risk score. Score = 2 × inbound + outbound + 3 × query indicators.</p></div></div><div class="table-scroll"><table><thead><tr><th><button data-sort="path">File</button></th><th><button data-sort="inbound">Inbound</button></th><th><button data-sort="outbound">Outbound</button></th><th><button data-sort="database">DB queries</button></th><th><button data-sort="score">Score</button></th></tr></thead><tbody id="hotspots"></tbody></table></div></section>
+      <section class="panel diagnostics" aria-labelledby="warnings-title"><div class="panel-head"><div><p class="eyebrow">WHAT WE COULDN'T RESOLVE</p><h2 id="warnings-title">Diagnostics</h2></div><span id="warning-count" class="chip"></span></div><ul id="warnings"></ul></section>
+    </section>
+    <footer>Unknot reads reports locally. Static analysis cannot see every runtime behavior.</footer>
+  </main>
+</body>
+</html>

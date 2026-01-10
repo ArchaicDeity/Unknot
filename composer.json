@@ -26,6 +26,8 @@
             "@php tests/method-worker-validation.php",
             "@php tests/include-expressions.php",
             "@php tests/source-versions.php",
+            "@php tests/database-touchpoints.php",
+            "@php tests/web-service.php",
             "@php tests/worker-connections.php",
             "@php tests/worker-isolation.php",
             "@php tests/worker-limits.php",

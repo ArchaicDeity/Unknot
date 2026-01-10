@@ -14,6 +14,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Test browser report model
+        run: node tests/browser-model.mjs
       - name: Install dependencies
         run: |
           docker run --rm -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
@@ -26,7 +28,7 @@ jobs:
             --tmpfs /tmp:rw,nosuid,noexec,size=128m -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
             -v "$PWD:/app:ro" -w /app --entrypoint sh \
             php@sha256:ad5e56e971853a682ddb0b600ca47c4141f1dd38827d093a142bd0e86f0fa480 \
-            -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
+            -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /app/public /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
 
   windows:
     runs-on: windows-latest

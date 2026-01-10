@@ -80,7 +80,8 @@ final class Extractor
         usort($references, static fn (array $a, array $b): int => [$a['startOffset'], $a['endOffset'], $a['type']] <=> [$b['startOffset'], $b['endOffset'], $b['type']]);
 
         return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,
-            'methodEvidence' => (new MethodEvidence())->collect($nodes)];
+            'methodEvidence' => (new MethodEvidence())->collect($nodes),
+            'findings' => (new DatabaseTouchpoints())->extract($nodes)];
     }
 
     private function namedReference(string $type, Node\Name $name, string $expectedKind): array

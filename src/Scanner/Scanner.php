@@ -39,6 +39,7 @@ final class Scanner
         $methodFiles = [];
         $methodCount = 0;
         $callCount = 0;
+        $findings = [];
         $warnings = $discovery['warnings'];
         $totalBytes = 0;
         $reader = new SourceReader($this->discovery);
@@ -86,6 +87,14 @@ final class Scanner
                     throw new RuntimeException('The scan exceeds the reference limit.');
                 }
             }
+            foreach ($result['findings'] ?? [] as $finding) {
+                $finding['fileId'] = $id;
+                $finding['id'] = 'finding:' . hash('sha256', json_encode($finding, JSON_THROW_ON_ERROR));
+                $findings[] = $finding;
+                if (count($findings) > 100000) {
+                    throw new RuntimeException('The scan exceeds the finding limit.');
+                }
+            }
         }
 
         $edges = [];
@@ -104,6 +113,7 @@ final class Scanner
 
         usort($warnings, static fn (array $a, array $b): int => [$a['fileId'], $a['line'] ?? 0, $a['code']] <=> [$b['fileId'], $b['line'] ?? 0, $b['code']]);
         return ['schemaVersion' => 0, 'scan' => ['rootLabel' => basename($root), 'fileCount' => count($nodes), 'warnings' => $warnings],
-            'nodes' => $nodes, 'edges' => $edges, 'extensions' => ['legacyMethodEvidence' => ['version' => 1, 'files' => $methodFiles]]];
+            'nodes' => $nodes, 'edges' => $edges, 'findings' => $findings,
+            'extensions' => ['legacyMethodEvidence' => ['version' => 1, 'files' => $methodFiles]]];
     }
 }

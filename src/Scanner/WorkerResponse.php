@@ -100,7 +100,38 @@ final class WorkerResponse
             $evidence['calls'][$key] = $call;
         }
         if (!(new MethodEvidenceValidator())->valid($evidence, $declarations, $source)) return null;
-        return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references, 'methodEvidence' => $evidence];
+        $findings = [];
+        $lastFindingOffset = 0;
+        $findingLine = 1;
+        if (!is_array($result['findings'] ?? []) || count($result['findings'] ?? []) > 100000) {
+            return null;
+        }
+        foreach ($result['findings'] ?? [] as $finding) {
+            if (!$finding instanceof stdClass || !in_array($finding->api ?? null, [
+                'pdo::__construct', 'mysqli::__construct', 'mysqli_connect', 'mysqli_real_connect',
+                'mysqli_query', 'mysqli_prepare', 'mysqli_execute_query', 'pdo::query', 'pdo::prepare',
+                'pdo::exec', 'mysqli::query', 'mysqli::prepare', 'mysqli::real_query',
+            ], true) || !in_array($finding->category ?? null, ['connection', 'query'], true)
+                || ($finding->confidence ?? null) !== 'heuristic' || !$this->line($finding->line ?? null, $maxLine)
+                || !is_int($finding->startOffset ?? null) || !is_int($finding->endOffset ?? null)
+                || $finding->startOffset < $lastFindingOffset || $finding->endOffset <= $finding->startOffset
+                || $finding->endOffset > strlen($source)) {
+                return null;
+            }
+            $isConnection = in_array($finding->api, ['pdo::__construct', 'mysqli::__construct', 'mysqli_connect', 'mysqli_real_connect'], true);
+            if ($finding->category !== ($isConnection ? 'connection' : 'query')) {
+                return null;
+            }
+            $findingLine += substr_count($source, "\n", $lastFindingOffset, $finding->startOffset - $lastFindingOffset);
+            $lastFindingOffset = $finding->startOffset;
+            if ($findingLine !== $finding->line) {
+                return null;
+            }
+            $findings[] = ['api' => $finding->api, 'category' => $finding->category, 'confidence' => 'heuristic',
+                'line' => $finding->line, 'startOffset' => $finding->startOffset, 'endOffset' => $finding->endOffset];
+        }
+        return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,
+            'methodEvidence' => $evidence, 'findings' => $findings];
     }
 
     private function text($value): bool

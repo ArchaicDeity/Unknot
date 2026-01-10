@@ -113,7 +113,8 @@ try {
 }
 $excludedReport = $scanner->scan($fixture, ['Storage.php']);
 check($excludedReport['scan']['fileCount'] === 2, 'Explicit exclusions must remove files from discovery.');
-check(count(array_filter($excludedReport['edges'], static fn (array $edge): bool => $edge['type'] === 'instantiation' && $edge['reasonCode'] === 'symbol-not-found')) === 1, 'An excluded declaration must not resolve.');
+check(count(array_filter($excludedReport['edges'], static fn (array $edge): bool => $edge['type'] === 'instantiation'
+    && $edge['reasonCode'] === 'symbol-not-found' && $edge['target']['name'] === 'Demo\\Storage')) === 1, 'An excluded declaration must not resolve.');
 $limitedReport = (new Scanner(new FileDiscovery(), new IsolatedExtractor(), 0.000001))->scan($fixture);
 check(count(array_filter($limitedReport['scan']['warnings'], static fn (array $warning): bool => $warning['code'] === 'scan-time-limit')) > 0, 'A scan deadline must report skipped files.');
 foreach (['https://example.invalid/repo', '\\\\server\\share'] as $remoteRoot) {

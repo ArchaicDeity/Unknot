@@ -7,6 +7,7 @@ use Unknot\Report\JsonWriter;
 use Unknot\Scanner\IsolatedExtractor;
 use Unknot\Scanner\FileDiscovery;
 use Unknot\Scanner\Scanner;
+use Unknot\Web\Server;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (!is_file($autoload)) {
@@ -17,6 +18,30 @@ require $autoload;
 
 $arguments = $argv;
 array_shift($arguments);
+if (($arguments[0] ?? '') === 'serve') {
+    $reportPath = null;
+    $port = 8765;
+    foreach (array_slice($arguments, 1) as $argument) {
+        if (str_starts_with($argument, '--report=')) {
+            $reportPath = substr($argument, strlen('--report='));
+        } elseif (preg_match('/^--port=([0-9]{1,5})$/', $argument, $match)) {
+            $port = (int) $match[1];
+        } else {
+            fwrite(STDERR, "Unknown option.\n");
+            exit(1);
+        }
+    }
+    if ($reportPath === null || $reportPath === '') {
+        fwrite(STDERR, "A report path is required.\n");
+        exit(1);
+    }
+    try {
+        exit((new Server())->run($reportPath, $port));
+    } catch (Throwable $error) {
+        fwrite(STDERR, "Server failed: " . $error->getMessage() . "\n");
+        exit(1);
+    }
+}
 if (count($arguments) < 2 || $arguments[0] !== 'scan') {
     fwrite(STDERR, "Usage: php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>]\n");
     exit(1);

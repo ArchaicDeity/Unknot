@@ -35,7 +35,9 @@ if ($method !== 'GET') {
 $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css' => ['assets/style.css', 'text/css; charset=utf-8'],
     '/assets/app.js' => ['assets/app.js', 'text/javascript; charset=utf-8'],
     '/assets/report.js' => ['assets/report.js', 'text/javascript; charset=utf-8'],
-    '/assets/graph.js' => ['assets/graph.js', 'text/javascript; charset=utf-8']];
+    '/assets/graph.js' => ['assets/graph.js', 'text/javascript; charset=utf-8'],
+    '/assets/graph-model.js' => ['assets/graph-model.js', 'text/javascript; charset=utf-8'],
+    '/assets/vendor/cytoscape.esm.min.mjs' => ['assets/vendor/cytoscape.esm.min.mjs', 'text/javascript; charset=utf-8']];
 if (isset($assets[$path])) {
     header('Content-Type: ' . $assets[$path][1]);
     readfile(__DIR__ . '/' . $assets[$path][0]);

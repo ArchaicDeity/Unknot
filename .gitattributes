@@ -1,0 +1,3 @@
+# Preserve the exact bytes of the upstream distribution and its licence.
+/public/assets/vendor/cytoscape.esm.min.mjs -text
+/public/assets/vendor/cytoscape.LICENSE.txt -text

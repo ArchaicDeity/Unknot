@@ -1,6 +1,7 @@
 /docs/
 /.local-tools/
 /vendor/
+/node_modules/
 /report.json
 /reports/
 /.composer-ci.phar

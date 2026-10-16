@@ -24,7 +24,21 @@
         <section class="panel explorer" aria-labelledby="explorer-title">
           <div class="panel-head"><div><p class="eyebrow">EXPLORE</p><h2 id="explorer-title">Connections</h2></div><span class="chip">FILE LEVEL</span></div>
           <div class="controls"><label>Search files <input id="search" type="search" placeholder="e.g. Orders.php" autocomplete="off"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
-          <div class="graph-wrap"><div class="graph-label"><span>DEPENDENCY MAP</span><span>SELECT A FILE TO EXPLORE</span></div><div id="graph" aria-label="Dependency graph"></div><p id="graph-status" class="graph-status"></p></div>
+          <div class="graph-wrap">
+            <div class="graph-label"><span>DEPENDENCY MAP</span><span>DRAG TO EXPLORE · SCROLL TO ZOOM</span></div>
+            <div class="graph-toolbar" role="group" aria-label="Graph controls">
+              <label for="graph-layout">Layout</label>
+              <select id="graph-layout" disabled><option value="breadthfirst">Flow</option><option value="cose">Clusters</option></select>
+              <button type="button" id="graph-zoom-out" aria-label="Zoom out" disabled>−</button>
+              <output id="graph-zoom-level" aria-live="polite" aria-label="Graph zoom">—</output>
+              <button type="button" id="graph-zoom-in" aria-label="Zoom in" disabled>+</button>
+              <button type="button" id="graph-fit" disabled>Fit graph</button>
+              <label class="graph-self"><input id="graph-self" type="checkbox" disabled> Show same-file references</label>
+              <label class="graph-self"><input id="graph-neighbors" type="checkbox" checked disabled> Include connected files in search</label>
+            </div>
+            <div id="graph" role="img" aria-label="Interactive dependency graph. Use the file list below for keyboard navigation."></div>
+            <p id="graph-status" class="graph-status" role="status"></p>
+          </div>
           <div class="list-title"><h3>Files</h3><span id="list-count" class="muted"></span></div><div id="files" class="file-list" aria-label="File list"></div>
         </section>
         <aside class="panel details" aria-labelledby="details-title"><div class="panel-head"><div><p class="eyebrow">INSPECT</p><h2 id="details-title">File details</h2></div><span class="chip">EVIDENCE</span></div><div id="details"><p class="empty">Select a file to see its declarations and connections.</p></div></aside>

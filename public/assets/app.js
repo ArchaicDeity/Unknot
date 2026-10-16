@@ -1,8 +1,7 @@
 import { readReportFile, validateReport, hotspots } from './report.js';
-import { renderGraph } from './graph.js';
 
 const byId = id => document.getElementById(id);
-const state = { report: null, selected: null, sort: 'score', ascending: false, loadSequence: 0 };
+const state = { report: null, selected: null, selectedEdge: null, sort: 'score', ascending: false, loadSequence: 0 };
 const message = text => { byId('message').textContent = text; };
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
@@ -10,11 +9,38 @@ const node = (tag, text, className) => {
   if (className) element.className = className;
   return element;
 };
+let graphController = null;
+let graphUnavailable = false;
+
+async function prepareGraph() {
+  try {
+    const { createGraphController } = await import('./graph.js');
+    graphController = createGraphController(byId('graph'), byId('graph-status'), byId('graph-zoom-level'), selectFile, selectReference, (available, clustersAllowed, layout) => {
+      for (const id of ['graph-zoom-in', 'graph-zoom-out', 'graph-fit', 'graph-layout']) byId(id).disabled = !available;
+      if (available) {
+        byId('graph-layout').querySelector('option[value="cose"]').disabled = !clustersAllowed;
+        byId('graph-layout').value = layout;
+      }
+    });
+    for (const id of ['graph-self', 'graph-neighbors']) byId(id).disabled = false;
+    if (state.report) render();
+  } catch (error) {
+    graphUnavailable = true;
+    byId('graph-status').textContent = 'The graph could not be loaded. The file list and details remain available.';
+  }
+}
 
 function selectFile(id) {
-  state.selected = id; render();
+  state.selected = id; state.selectedEdge = null; render();
   const selected = Array.from(byId('files').querySelectorAll('button')).find(button => button.dataset.fileId === id);
   if (selected) selected.focus({ preventScroll: true });
+}
+function selectReference(id) {
+  const edge = state.report.edges.find(item => item.id === id);
+  if (!edge) return;
+  state.selected = edge.from;
+  state.selectedEdge = edge.id;
+  render();
 }
 function labelConfidence(value) { return value === 'resolved' ? 'Resolved (static)' : value === 'heuristic' ? 'Inferred' : 'Unresolved'; }
 function section(title, rows) {
@@ -22,7 +48,9 @@ function section(title, rows) {
   wrapper.appendChild(node('h3', title));
   if (!rows.length) { wrapper.appendChild(node('p', 'None found.', 'muted')); return wrapper; }
   const list = node('ul');
-  for (const row of rows) list.appendChild(node('li', row));
+  for (const row of rows) {
+    list.appendChild(typeof row === 'string' ? node('li', row) : node('li', row.text, row.selected ? 'reference-selected' : undefined));
+  }
   wrapper.appendChild(list);
   return wrapper;
 }
@@ -35,9 +63,11 @@ function details(report, filteredEdges) {
   container.appendChild(node('p', file.path, 'detail-path'));
   container.appendChild(node('p', 'Parse state: ' + file.parseState, 'muted'));
   container.appendChild(section('Declarations', file.declarations.map(item => item.kind + ' ' + item.name + ' · line ' + item.line)));
-  const outgoing = filteredEdges.filter(edge => edge.from === file.id).map(edge =>
-    edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ' +
-    (edge.to ? edge.to.slice(5) : edge.reasonCode) + (edge.target.candidates.length && !edge.to ? ' · candidates: ' + edge.target.candidates.map(id => id.slice(5)).join(', ') : ''));
+  const outgoing = filteredEdges.filter(edge => edge.from === file.id).map(edge => ({
+    selected: edge.id === state.selectedEdge,
+    text: (edge.id === state.selectedEdge ? 'Selected: ' : '') + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ' +
+    (edge.to ? edge.to.slice(5) : edge.reasonCode) + (edge.target.candidates.length && !edge.to ? ' · candidates: ' + edge.target.candidates.map(id => id.slice(5)).join(', ') : ''),
+  }));
   container.appendChild(section('Outgoing references', outgoing));
   container.appendChild(section('Incoming references', filteredEdges.filter(edge => edge.to === file.id && edge.from !== file.id)
     .map(edge => edge.from.slice(5) + ' · ' + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence))));
@@ -67,11 +97,14 @@ function render() {
     button.appendChild(node('span', file.path)); button.appendChild(node('small', file.parseState));
     button.addEventListener('click', () => selectFile(file.id)); fileList.appendChild(button);
   }
-  try {
-    byId('graph-status').textContent = renderGraph(byId('graph'), visible, filteredEdges, state.selected, selectFile);
-  } catch (error) {
-    byId('graph').replaceChildren();
-    byId('graph-status').textContent = 'The graph could not be drawn. The file list and details remain available.';
+  if (graphController) {
+    graphController.update(visible, filteredEdges, state.selected, state.selectedEdge, {
+      allNodes: report.nodes, includeNeighbors: query !== '' && byId('graph-neighbors').checked,
+    }).catch(() => {
+      byId('graph-status').textContent = 'The graph could not be drawn. The file list and details remain available.';
+    });
+  } else if (!graphUnavailable) {
+    byId('graph-status').textContent = 'Preparing the dependency map…';
   }
   details(report, filteredEdges);
   const rows = hotspots(report).sort((a, b) => {
@@ -94,6 +127,7 @@ function render() {
 function setReport(report) {
   state.report = validateReport(report);
   state.selected = null;
+  state.selectedEdge = null;
   byId('search').value = '';
   byId('confidence-filter').value = 'all';
   const filter = byId('type-filter'); filter.replaceChildren(node('option', 'All types'));
@@ -118,6 +152,12 @@ byId('import').addEventListener('change', async event => {
   event.target.value = '';
 });
 for (const id of ['search', 'type-filter', 'confidence-filter']) byId(id).addEventListener(id === 'search' ? 'input' : 'change', render);
+byId('graph-zoom-in').addEventListener('click', () => graphController?.zoom(1.25));
+byId('graph-zoom-out').addEventListener('click', () => graphController?.zoom(0.8));
+byId('graph-fit').addEventListener('click', () => graphController?.fit());
+byId('graph-layout').addEventListener('change', event => graphController?.setLayout(event.target.value));
+byId('graph-self').addEventListener('change', event => graphController?.setIncludeSelf(event.target.checked));
+byId('graph-neighbors').addEventListener('change', render);
 document.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
   const field = button.dataset.sort;
   state.ascending = state.sort === field ? !state.ascending : field === 'path'; state.sort = field; render();
@@ -135,6 +175,7 @@ byId('export-summary').addEventListener('click', () => {
   download('unknot-summary.txt', lines.join('\n') + '\n', 'text/plain');
 });
 
+prepareGraph();
 const token = location.hash.slice(1);
 history.replaceState(null, '', location.pathname);
 if (/^[a-f0-9]{64}$/.test(token)) {

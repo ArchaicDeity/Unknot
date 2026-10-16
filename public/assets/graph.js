@@ -1,44 +1,137 @@
-const NS = 'http://www.w3.org/2000/svg';
-function element(name, attributes) {
-  const node = document.createElementNS(NS, name);
-  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
-  return node;
-}
+import { graphModel, connectedNodes, effectiveGraphLayout, GRAPH_NODE_LIMIT, GRAPH_EDGE_LIMIT, GRAPH_CLUSTER_LIMIT } from './graph-model.js';
 
-export function renderGraph(container, nodes, edges, selected, select) {
-  container.replaceChildren();
-  if (nodes.length > 500 || edges.length > 2000) return 'Graph limit reached. Narrow the search or filters; the file list remains available.';
-  if (!nodes.length) return 'No files match the current search.';
-  const svg = element('svg', { viewBox: '0 0 720 240', role: 'group', 'aria-label': 'File connections. Use the file list for keyboard navigation.' });
-  const defs = element('defs', {});
-  const marker = element('marker', { id: 'arrow', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '5', markerHeight: '5', orient: 'auto-start-reverse' });
-  marker.appendChild(element('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: '#9bada2' }));
-  defs.appendChild(marker); svg.appendChild(defs);
-  const positions = new Map();
-  const columns = Math.max(1, Math.ceil(Math.sqrt(nodes.length * 3)));
-  const rows = Math.ceil(nodes.length / columns);
-  nodes.forEach((node, index) => positions.set(node.id, { x: (index % columns + .5) * 720 / columns, y: (Math.floor(index / columns) + .5) * 240 / rows }));
-  for (const edge of edges) {
-    if (!edge.to || !positions.has(edge.from) || !positions.has(edge.to) || edge.from === edge.to) continue;
-    const a = positions.get(edge.from), b = positions.get(edge.to);
-    const length = Math.hypot(b.x - a.x, b.y - a.y);
-    const endX = b.x - 9 * (b.x - a.x) / length, endY = b.y - 9 * (b.y - a.y) / length;
-    svg.appendChild(element('line', { x1: a.x, y1: a.y, x2: endX, y2: endY, 'marker-end': 'url(#arrow)', class: 'graph-edge ' + edge.confidence }));
+const STYLES = [
+  { selector: 'node', style: { 'background-color': '#e5eee6', 'border-color': '#6e8d79', 'border-width': 2,
+    width: 24, height: 24, label: 'data(label)', color: '#293b3d', 'font-size': 11,
+    'text-valign': 'bottom', 'text-margin-y': 6, 'text-max-width': 150, 'text-wrap': 'ellipsis' } },
+  { selector: 'node.current', style: { 'background-color': '#f5ddcc', 'border-color': '#a3502b', 'border-width': 4 } },
+  { selector: 'edge', style: { width: 2, 'line-color': '#9cb5a5', 'target-arrow-color': '#799886',
+    'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'arrow-scale': 0.8 } },
+  { selector: 'edge.heuristic', style: { 'line-color': '#c48d6e', 'target-arrow-color': '#a86a48', 'line-style': 'dashed' } },
+  { selector: 'edge.current', style: { width: 4, 'line-color': '#a3502b', 'target-arrow-color': '#a3502b' } },
+];
+
+/** Keep one graph instance so selecting a file does not reset pan, zoom or dragged nodes. */
+export function createGraphController(container, status, zoomIndicator, selectFile, selectReference, setAvailable) {
+  let graph = null;
+  let library = null;
+  let signature = null;
+  let generation = 0;
+  let selected = null;
+  let selectedEdge = null;
+  let layout = 'breadthfirst';
+  let includeSelf = false;
+  let lastInput = null;
+
+  // The canvas must track its container when the dashboard changes width.
+  const resizeGraph = () => { if (graph) graph.resize(); };
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(resizeGraph).observe(container);
+  } else {
+    window.addEventListener('resize', resizeGraph);
   }
-  for (const node of nodes) {
-    const point = positions.get(node.id);
-    const group = element('g', { class: 'graph-node' + (selected === node.id ? ' selected' : ''), role: 'button', tabindex: '0', 'aria-label': 'Select ' + node.path });
-    group.appendChild(element('circle', { cx: point.x, cy: point.y, r: 7 }));
-    if (nodes.length <= 35) {
-      const label = element('text', { x: point.x + 11, y: point.y + 4 });
-      const name = node.path.split('/').pop();
-      label.textContent = name.length > 20 ? name.slice(0, 17) + '…' : name;
-      group.appendChild(label);
+
+  function zoomText() {
+    zoomIndicator.textContent = graph ? Math.round(graph.zoom() * 100) + '%' : '—';
+  }
+
+  function updateSelection() {
+    if (!graph) return;
+    graph.nodes('.current').removeClass('current');
+    graph.edges('.current').removeClass('current');
+    if (selected !== null) graph.getElementById(selected).addClass('current');
+    if (selectedEdge !== null) graph.getElementById(selectedEdge).addClass('current');
+  }
+
+  function layoutGraph() {
+    if (!graph || graph.nodes().empty()) return;
+    const options = layout === 'cose'
+      ? { name: 'cose', animate: false, randomize: false, numIter: 500, fit: true, padding: 45,
+        nodeDimensionsIncludeLabels: true, nodeRepulsion: () => 10000, idealEdgeLength: () => 100, componentSpacing: 100 }
+      : { name: 'breadthfirst', directed: true, circle: false, spacingFactor: 1.25, fit: true, padding: 35 };
+    graph.layout(options).run();
+    zoomText();
+  }
+
+  async function update(nodes, edges, current, currentEdge, options = {}) {
+    lastInput = { nodes, edges, current, currentEdge, options };
+    selected = current;
+    selectedEdge = currentEdge;
+    const expanded = options.includeNeighbors ? connectedNodes(nodes, options.allNodes, edges) : nodes;
+    const model = graphModel(expanded, edges, { includeSelf });
+    const request = ++generation;
+    if (model.reason !== null) {
+      if (graph) { graph.destroy(); graph = null; }
+      signature = null;
+      container.replaceChildren();
+      zoomText();
+      setAvailable(false);
+      status.textContent = model.reason === 'empty' ? 'No files match the current search.'
+        : model.reason === 'node-limit' ? `Graph limit: ${GRAPH_NODE_LIMIT} files. Narrow the search; the file list remains available.`
+          : `Graph limit: ${GRAPH_EDGE_LIMIT} visible connections. Narrow the search or filters; the file list remains available.`;
+      return;
     }
-    group.addEventListener('click', () => select(node.id));
-    group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(node.id); } });
-    svg.appendChild(group);
+    const nextSignature = JSON.stringify([model.nodes.map(node => node.id),
+      model.edges.map(edge => [edge.id, edge.from, edge.to, edge.confidence])]);
+    const extra = expanded.length - nodes.length;
+    const neighborNote = extra > 0 ? ` Includes ${extra} connected ${extra === 1 ? 'file' : 'files'}.` : '';
+    const selfNote = model.hiddenSelfReferences ? ` ${model.hiddenSelfReferences} same-file ${model.hiddenSelfReferences === 1 ? 'reference' : 'references'} hidden.` : '';
+    const layoutNote = model.nodes.length > GRAPH_CLUSTER_LIMIT ? ` Cluster layout requires ${GRAPH_CLUSTER_LIMIT} files or fewer.` : '';
+    const description = `${model.nodes.length} ${model.nodes.length === 1 ? 'file' : 'files'}, ${model.edges.length} visible ${model.edges.length === 1 ? 'connection' : 'connections'}.${neighborNote}${selfNote}${layoutNote} Dashed lines are inferred; unresolved references appear in file details.`;
+    if (graph && signature === nextSignature) {
+      updateSelection();
+      status.textContent = description;
+      return;
+    }
+    status.textContent = 'Preparing the dependency map…';
+    try {
+      if (!library) library = (await import('./vendor/cytoscape.esm.min.mjs')).default;
+      if (request !== generation) return;
+      if (graph) { graph.destroy(); graph = null; }
+      const elements = model.nodes.map(node => ({ data: { id: node.id, label: node.path.split('/').pop(), path: node.path } }));
+      for (const edge of model.edges) {
+        elements.push({ data: { id: edge.id, source: edge.from, target: edge.to }, classes: edge.confidence });
+      }
+      graph = library({ container, elements, style: STYLES, layout: { name: 'preset', fit: false },
+        minZoom: 0.1, maxZoom: 4, boxSelectionEnabled: false });
+      graph.on('tap', 'node', event => selectFile(event.target.id()));
+      graph.on('tap', 'edge', event => selectReference(event.target.id()));
+      graph.on('zoom', zoomText);
+      layout = effectiveGraphLayout(layout, model.nodes.length);
+      setAvailable(true, model.nodes.length <= GRAPH_CLUSTER_LIMIT, layout);
+      signature = nextSignature;
+      updateSelection();
+      layoutGraph();
+      status.textContent = description;
+    } catch (error) {
+      if (request !== generation) return;
+      if (graph) { graph.destroy(); graph = null; }
+      signature = null;
+      container.replaceChildren();
+      zoomText();
+      setAvailable(false);
+      status.textContent = 'The graph could not be drawn. The file list and details remain available.';
+    }
   }
-  container.appendChild(svg);
-  return 'Lines show known or inferred connections; unresolved references appear in file details.';
+
+  return {
+    update,
+    fit() { if (graph && graph.nodes().length) { graph.fit(undefined, 35); zoomText(); } },
+    zoom(factor) {
+      if (!graph) return;
+      graph.zoom({ level: Math.max(graph.minZoom(), Math.min(graph.maxZoom(), graph.zoom() * factor)),
+        renderedPosition: { x: graph.width() / 2, y: graph.height() / 2 } });
+      zoomText();
+    },
+    setLayout(value) {
+      if (!['breadthfirst', 'cose'].includes(value)) return;
+      if (value === 'cose' && graph && graph.nodes().length > GRAPH_CLUSTER_LIMIT) return;
+      layout = value;
+      layoutGraph();
+    },
+    setIncludeSelf(value) {
+      includeSelf = value;
+      if (lastInput) update(lastInput.nodes, lastInput.edges, lastInput.current, lastInput.currentEdge, lastInput.options);
+    },
+  };
 }

@@ -42,16 +42,14 @@ final class Scanner
         $findings = [];
         $warnings = $discovery['warnings'];
         $totalBytes = 0;
-        $reader = new SourceReader($this->discovery);
         foreach ($files as $relative => $path) {
             $id = 'file:' . $relative;
             if ((hrtime(true) - $started) / 1000000000 >= $this->timeLimitSeconds) {
                 $result = ['state' => 'skipped', 'reason' => 'scan-time-limit', 'declarations' => [], 'references' => []];
             } else {
-                $read = $reader->read($path, $root, $totalBytes, $discovery['identities'][$relative]);
-                $result = $read['source'] === null
-                    ? ['state' => 'skipped', 'reason' => $read['reason'], 'declarations' => [], 'references' => []]
-                    : $this->extractor->extract($read['source']);
+                // Reading shares the parser's deadline so a blocked open cannot hang the scanning process.
+                $result = $this->extractor->extractFile($path, $root, $discovery['identities'][$relative], 134217728 - $totalBytes);
+                $totalBytes += $result['sourceBytes'] ?? 0;
             }
             $nodes[] = ['id' => $id, 'path' => $relative, 'kind' => 'file', 'parseState' => $result['state'], 'declarations' => $result['declarations']];
             $evidence = $result['state'] === 'clean' ? $result['methodEvidence'] : ['methods' => [], 'calls' => []];

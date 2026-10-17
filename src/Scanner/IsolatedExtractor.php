@@ -10,6 +10,7 @@ use RuntimeException;
 final class IsolatedExtractor
 {
     private const MAX_RESPONSE_BYTES = 16777216;
+    private const MAX_FILE_RESPONSE_BYTES = 20971520;
     private $server = null;
     private ?string $address = null;
 
@@ -28,6 +29,24 @@ final class IsolatedExtractor
     }
 
     public function extract(string $source): array
+    {
+        return $this->exchange($source, false, 0);
+    }
+
+    /** Reads and parses a file inside the same deadline-bound worker. */
+    public function extractFile(string $path, string $root, array|false $identity, int $remainingBytes): array
+    {
+        try {
+            $request = json_encode(['path' => $path, 'root' => $root, 'identity' => $identity,
+                'remainingBytes' => $remainingBytes], JSON_THROW_ON_ERROR);
+        } catch (\JsonException $error) {
+            return ['state' => 'skipped', 'reason' => 'source-path-encoding', 'line' => null,
+                'declarations' => [], 'references' => []];
+        }
+        return $this->exchange($request, true, $remainingBytes);
+    }
+
+    private function exchange(string $source, bool $fileMode, int $remainingBytes): array
     {
         $failure = static fn (string $reason): array => [
             'state' => 'failed', 'reason' => $reason, 'line' => null, 'declarations' => [], 'references' => [],
@@ -53,6 +72,9 @@ final class IsolatedExtractor
         }
         $environment['UNKNOT_WORKER_ADDRESS'] = $this->address;
         $environment['UNKNOT_WORKER_TOKEN'] = $token;
+        if ($fileMode) {
+            $environment['UNKNOT_WORKER_MODE'] = 'file';
+        }
         $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
         $descriptors = [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']];
         $worker = dirname(__DIR__, 2) . '/bin/parser-worker';
@@ -78,7 +100,8 @@ final class IsolatedExtractor
             $authentication = (new WorkerAuthenticator())->accept($this->server, $process, $token, $deadline);
             $client = $authentication['client'];
             if ($client === null) {
-                return $failure($authentication['reason']);
+                $reason = $authentication['reason'];
+                return $failure($fileMode && $reason === 'parser-timeout' ? 'source-or-parser-timeout' : $reason);
             }
             while (hrtime(true) / 1e9 < $deadline) {
                 $read = [$client];
@@ -96,12 +119,16 @@ final class IsolatedExtractor
                     if ($responseLength === null && strlen($response) >= 4) {
                         $responseLength = unpack('Nlength', substr($response, 0, 4))['length'];
                         $response = substr($response, 4);
-                        if ($responseLength < 1 || $responseLength > self::MAX_RESPONSE_BYTES) {
+                        $limit = $fileMode ? self::MAX_FILE_RESPONSE_BYTES : self::MAX_RESPONSE_BYTES;
+                        if ($responseLength < 1 || $responseLength > $limit) {
                             return $failure('parser-response-limit');
                         }
                     }
                     if ($responseLength !== null && strlen($response) >= $responseLength) {
-                        return $this->decode($response, $responseLength, $source) ?? $failure('parser-invalid-response');
+                        if (!$fileMode) {
+                            return $this->decode($response, $responseLength, $source) ?? $failure('parser-invalid-response');
+                        }
+                        return $this->decodeFileResponse($response, $responseLength, $remainingBytes) ?? $failure('parser-invalid-response');
                     }
                 }
                 if ($write !== []) {
@@ -112,7 +139,7 @@ final class IsolatedExtractor
                     $sent += $written;
                 }
             }
-            return $failure('parser-timeout');
+            return $failure($fileMode ? 'source-or-parser-timeout' : 'parser-timeout');
         } finally {
             if (is_resource($client)) {
                 fclose($client);
@@ -129,4 +156,33 @@ final class IsolatedExtractor
     {
         return (new WorkerResponse())->decode($response, $expectedLength, $source);
     }
+
+    private function decodeFileResponse(string $response, int $expectedLength, int $remainingBytes): ?array
+    {
+        if (strlen($response) !== $expectedLength || $remainingBytes < 0) {
+            return null;
+        }
+        try {
+            $envelope = json_decode($response, true, 64, JSON_THROW_ON_ERROR);
+            if (!is_array($envelope)) return null;
+            if (isset($envelope['readFailure'])) {
+                if (!in_array($envelope['readFailure'], ['file-unavailable', 'file-changed', 'not-regular-file',
+                    'file-unreadable', 'source-limit'], true)) return null;
+                return ['state' => 'skipped', 'reason' => $envelope['readFailure'], 'line' => null,
+                    'declarations' => [], 'references' => []];
+            }
+            if (!is_string($envelope['source'] ?? null) || !is_array($envelope['result'] ?? null)) return null;
+            $source = base64_decode($envelope['source'], true);
+            if ($source === false || strlen($source) > 2097152 || strlen($source) > $remainingBytes) return null;
+            $resultJson = json_encode($envelope['result'], JSON_THROW_ON_ERROR);
+            if (strlen($resultJson) > self::MAX_RESPONSE_BYTES) return null;
+            $result = (new WorkerResponse())->decode($resultJson, strlen($resultJson), $source);
+            if ($result === null) return null;
+            $result['sourceBytes'] = strlen($source);
+            return $result;
+        } catch (\JsonException $error) {
+            return null;
+        }
+    }
+
 }

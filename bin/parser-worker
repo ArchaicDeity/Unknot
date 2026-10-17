@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Unknot\Scanner\Extractor;
+use Unknot\Scanner\FileDiscovery;
+use Unknot\Scanner\SourceReader;
 use Unknot\Scanner\WorkerMemoryLimit;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -69,9 +71,24 @@ try {
     if ($source === null) {
         exit(1);
     }
-    $result = (new Extractor())->extract($source);
+    $fileMode = getenv('UNKNOT_WORKER_MODE') === 'file';
+    if ($fileMode) {
+        $request = json_decode($source, true, 32, JSON_THROW_ON_ERROR);
+        if (!is_array($request) || !is_string($request['path'] ?? null) || !is_string($request['root'] ?? null)
+            || !array_key_exists('identity', $request) || (!is_array($request['identity']) && $request['identity'] !== false)
+            || !is_int($request['remainingBytes'] ?? null) || $request['remainingBytes'] < 0 || $request['remainingBytes'] > 134217728) {
+            exit(1);
+        }
+        $totalBytes = 134217728 - $request['remainingBytes'];
+        $read = (new SourceReader(new FileDiscovery()))->read($request['path'], $request['root'], $totalBytes, $request['identity']);
+        $result = $read['source'] === null
+            ? ['readFailure' => $read['reason']]
+            : ['source' => base64_encode($read['source']), 'result' => (new Extractor())->extract($read['source'])];
+    } else {
+        $result = (new Extractor())->extract($source);
+    }
     $json = json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (strlen($json) > 16777216 || !writeBytes($connection, pack('N', strlen($json)) . $json)) {
+    if (strlen($json) > ($fileMode ? 20971520 : 16777216) || !writeBytes($connection, pack('N', strlen($json)) . $json)) {
         exit(1);
     }
 } catch (Throwable $error) {

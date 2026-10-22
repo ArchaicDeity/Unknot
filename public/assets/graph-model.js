@@ -1,6 +1,6 @@
 export const GRAPH_NODE_LIMIT = 500;
 export const GRAPH_EDGE_LIMIT = 2000;
-export const GRAPH_CLUSTER_LIMIT = 150;
+export const GRAPH_CLUSTER_LIMIT = GRAPH_NODE_LIMIT;
 
 export function effectiveGraphLayout(requested, nodeCount) {
   return requested === 'cose' && nodeCount <= GRAPH_CLUSTER_LIMIT ? 'cose' : 'breadthfirst';

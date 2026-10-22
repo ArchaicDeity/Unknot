@@ -2,7 +2,20 @@
 
 Unknot is a local PHP architecture explorer. Its first command scans a directory without running the scanned application and writes a JSON report of file declarations and a small set of static references.
 
-![Unknot dashboard showing the included sample report](public/demo.png)
+## Try the Laravel demo
+
+With PHP 8.5 and Composer 2.10.3 or newer installed, run:
+
+```sh
+composer install
+php bin/unknot demo
+```
+
+Open the URL printed in the terminal. It starts a local, read-only dashboard with a pre-scanned report; no Laravel checkout or database setup is needed. Keep the printed URL private and press Ctrl+C to stop the server. Use `php bin/unknot demo --port=8766` to select another port.
+
+The example covers the `src/Illuminate/Database` component of [Laravel framework v13.38.0 at c42f9ab](https://github.com/laravel/framework/tree/c42f9abd4a3d2f9a3cd6be109255ddce8092ceb8/src/Illuminate/Database), scanned on 1 November 2026. It contains 254 files and 1,572 static references, including 1,070 unresolved references. It does not cover the entire Laravel framework. Out-of-scope symbols and dynamic behavior can remain unresolved. Laravel is distributed under the [MIT licence](demo/LARAVEL-LICENSE.txt).
+
+Start with `Capsule/Manager.php` and inspect the resolved reference to `Connectors/ConnectionFactory.php`. Clear the search field to explore all files. The report is included; starting the demo does not run Laravel or rescan its source.
 
 ## Foundation prototype
 
@@ -20,9 +33,9 @@ Open `legacy-viewer/index.html` in a browser and choose the generated JSON repor
 Reports produced by this version include optional evidence for methods directly declared on named classes, interfaces and traits, and selected static call expressions. These are source expressions, not proof that a method ran. Version 1 leaves all method targets unresolved, excludes first-class callable creation, and does not describe instance calls, inherited methods, enum methods or anonymous types. Failed or skipped files have no method coverage. Older schema-0 reports still open and show method evidence as unavailable.
 Open the private URL printed by `serve` in a browser. The local service listens only on `127.0.0.1` and the URL contains a per-run access capability; keep it private. Press Ctrl+C to stop the service. You can choose a different port with `--port=8766`. A page refresh loses the capability held in browser memory: open the printed URL again or import a report locally. The [simple LegacyLens viewer](legacy-viewer/index.html) can also be opened directly and uses a file picker to read a report without uploading it.
 
-The dashboard offers an interactive dependency map, filename search, relationship and confidence filters, file details, a sortable hotspot table, diagnostics, local report import and JSON or text export. Click a file or connection to inspect its evidence, drag the map or nodes, and use the zoom, fit and layout controls to navigate. Search includes directly connected files by default; turn that option off to show only matching files. Same-file references are hidden on the graph by default and can be shown using the graph control. Unresolved references have no drawn destination and remain visible in file details. The file list and details work without the graph, including for keyboard navigation.
+The dashboard offers an interactive dependency map, filename search, relationship and confidence filters, file details, a sortable hotspot table, diagnostics, local report import and JSON or text export. Select a file to emphasize its visible connections: mint lines point to outgoing references, blue lines show incoming references, and dashed lines indicate inferred relationships. Hover over a node for its full path, use **Focus selected file** to zoom to its neighborhood, or select a linked filename in the details to follow it. Drag the map or nodes and use the zoom, fit and layout controls to navigate. Search includes directly connected files by default; turn that option off to show only matching files. Same-file references are hidden on the graph by default and can be shown using the graph control. Unresolved references have no drawn destination and remain visible in file details. The file list and details work without the graph, including for keyboard navigation.
 
-The graph shows at most 500 files and 2,000 visible connections; narrow the search or use the file list for larger reports. The more expensive cluster layout is available for views of up to 150 files; larger views use the flow layout. The hotspot score is `2 × inbound + outbound + 3 × query indicators`: inbound and outbound count distinct other files connected by resolved static references. The score is a navigation aid, not a risk assessment. Database indicators identify a limited set of PDO/mysqli calls using direct syntax or short straight-line bindings. They are heuristic and do not contain SQL or connection arguments.
+The graph shows at most 500 files and 2,000 visible connections; narrow the search or use the file list for larger reports. The cluster layout spreads files by their connections, and the flow layout provides a directed view. Large maps initially focus on the largest connected group; use **Fit graph** to see the whole map, or zoom in to reveal labels. The hotspot score is `2 × inbound + outbound + 3 × query indicators`: inbound and outbound count distinct other files connected by resolved static references. The score is a navigation aid, not a risk assessment. Database indicators identify a limited set of PDO/mysqli calls using direct syntax or short straight-line bindings. They are heuristic and do not contain SQL or connection arguments.
 
 The graph uses [Cytoscape.js 3.34.4](https://github.com/cytoscape/cytoscape.js) under its [MIT licence](public/assets/vendor/cytoscape.LICENSE.txt). Its unmodified browser distribution is included locally; Node.js is not required to run the dashboard. To verify or update the bundled asset during development, install Node.js and run `npm ci --ignore-scripts`, `npm run verify:vendor` and `npm test`. After changing the pinned package version, use `npm run vendor:graph` to copy its distribution and licence, then rerun the checks.
 

@@ -1,25 +1,36 @@
 import { graphModel, connectedNodes, effectiveGraphLayout, GRAPH_NODE_LIMIT, GRAPH_EDGE_LIMIT, GRAPH_CLUSTER_LIMIT } from './graph-model.js';
+import { runGraphLayout } from './graph-layout.js';
+import { applyGraphSelection } from './graph-selection.js';
 
 const STYLES = [
-  { selector: 'node', style: { 'background-color': '#e5eee6', 'border-color': '#6e8d79', 'border-width': 2,
-    width: 24, height: 24, label: 'data(label)', color: '#293b3d', 'font-size': 11,
-    'text-valign': 'bottom', 'text-margin-y': 6, 'text-max-width': 150, 'text-wrap': 'ellipsis' } },
-  { selector: 'node.current', style: { 'background-color': '#f5ddcc', 'border-color': '#a3502b', 'border-width': 4 } },
-  { selector: 'edge', style: { width: 2, 'line-color': '#9cb5a5', 'target-arrow-color': '#799886',
+  { selector: 'node', style: { 'background-color': '#2a3440', 'border-color': '#6ef2c5', 'border-width': 2,
+    width: 26, height: 26, label: 'data(label)', color: '#f0f3f1', 'font-size': 13,
+    'text-valign': 'bottom', 'text-margin-y': 7, 'text-max-width': 180, 'text-wrap': 'ellipsis', 'min-zoomed-font-size': 8,
+    'text-background-color': '#10191e', 'text-background-opacity': 0.9, 'text-background-padding': 3 } },
+  { selector: 'node.related', style: { 'background-color': '#344f4a', 'border-color': '#a0edda', 'border-width': 3 } },
+  { selector: 'node.current', style: { 'background-color': '#6ef2c5', 'border-color': '#f0f3f1', 'border-width': 4,
+    'min-zoomed-font-size': 0, 'text-max-width': 400, 'text-wrap': 'wrap' } },
+  { selector: 'node.hovered', style: { 'background-color': '#a6ffdf', 'border-color': '#f0f3f1', 'border-width': 4 } },
+  { selector: 'edge', style: { width: 2.5, 'line-color': '#789d98', 'target-arrow-color': '#a1c8bd',
     'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'arrow-scale': 0.8 } },
-  { selector: 'edge.heuristic', style: { 'line-color': '#c48d6e', 'target-arrow-color': '#a86a48', 'line-style': 'dashed' } },
-  { selector: 'edge.current', style: { width: 4, 'line-color': '#a3502b', 'target-arrow-color': '#a3502b' } },
+  { selector: 'edge.heuristic', style: { 'line-color': '#e3b87c', 'target-arrow-color': '#e3b87c', 'line-style': 'dashed' } },
+  { selector: 'node.dimmed', style: { opacity: 0.16 } },
+  { selector: 'node.dimmed.hovered', style: { opacity: 1 } },
+  { selector: 'edge.dimmed', style: { opacity: 0.10 } },
+  { selector: 'edge.incoming', style: { width: 4, 'line-color': '#80bdff', 'target-arrow-color': '#80bdff' } },
+  { selector: 'edge.outgoing', style: { width: 4, 'line-color': '#6ef2c5', 'target-arrow-color': '#6ef2c5' } },
+  { selector: 'edge.current', style: { width: 5, 'line-color': '#f0f3f1', 'target-arrow-color': '#f0f3f1' } },
 ];
 
 /** Keep one graph instance so selecting a file does not reset pan, zoom or dragged nodes. */
-export function createGraphController(container, status, zoomIndicator, selectFile, selectReference, setAvailable) {
+export function createGraphController(container, tooltip, status, zoomIndicator, selectFile, selectReference, setAvailable, setFocusAvailable) {
   let graph = null;
   let library = null;
   let signature = null;
   let generation = 0;
   let selected = null;
   let selectedEdge = null;
-  let layout = 'breadthfirst';
+  let layout = 'cose';
   let includeSelf = false;
   let lastInput = null;
 
@@ -33,23 +44,28 @@ export function createGraphController(container, status, zoomIndicator, selectFi
 
   function zoomText() {
     zoomIndicator.textContent = graph ? Math.round(graph.zoom() * 100) + '%' : '—';
+    if (graph) graph.nodes('.current').style('font-size', Math.max(13, Math.min(80, 13 / graph.zoom())));
   }
 
   function updateSelection() {
     if (!graph) return;
-    graph.nodes('.current').removeClass('current');
-    graph.edges('.current').removeClass('current');
-    if (selected !== null) graph.getElementById(selected).addClass('current');
-    if (selectedEdge !== null) graph.getElementById(selectedEdge).addClass('current');
+    graph.nodes('.current').removeStyle('font-size');
+    setFocusAvailable(applyGraphSelection(graph, selected, selectedEdge));
+    zoomText();
   }
 
   function layoutGraph() {
     if (!graph || graph.nodes().empty()) return;
-    const options = layout === 'cose'
-      ? { name: 'cose', animate: false, randomize: false, numIter: 500, fit: true, padding: 45,
-        nodeDimensionsIncludeLabels: true, nodeRepulsion: () => 10000, idealEdgeLength: () => 100, componentSpacing: 100 }
-      : { name: 'breadthfirst', directed: true, circle: false, spacingFactor: 1.25, fit: true, padding: 35 };
-    graph.layout(options).run();
+    runGraphLayout(graph, layout);
+    if (graph.nodes().length > 80 && graph.edges().some(edge => edge.source().id() !== edge.target().id())) {
+      const components = graph.elements().components();
+      const largest = components.reduce((best, component) =>
+        component.nodes().length > best.nodes().length ? component : best, components[0]);
+      graph.fit(largest, 45);
+      if (graph.zoom() < 0.35) {
+        graph.zoom({ level: 0.35, renderedPosition: { x: graph.width() / 2, y: graph.height() / 2 } });
+      }
+    }
     zoomText();
   }
 
@@ -66,6 +82,8 @@ export function createGraphController(container, status, zoomIndicator, selectFi
       container.replaceChildren();
       zoomText();
       setAvailable(false);
+      setFocusAvailable(false);
+      tooltip.hidden = true;
       status.textContent = model.reason === 'empty' ? 'No files match the current search.'
         : model.reason === 'node-limit' ? `Graph limit: ${GRAPH_NODE_LIMIT} files. Narrow the search; the file list remains available.`
           : `Graph limit: ${GRAPH_EDGE_LIMIT} visible connections. Narrow the search or filters; the file list remains available.`;
@@ -77,7 +95,9 @@ export function createGraphController(container, status, zoomIndicator, selectFi
     const neighborNote = extra > 0 ? ` Includes ${extra} connected ${extra === 1 ? 'file' : 'files'}.` : '';
     const selfNote = model.hiddenSelfReferences ? ` ${model.hiddenSelfReferences} same-file ${model.hiddenSelfReferences === 1 ? 'reference' : 'references'} hidden.` : '';
     const layoutNote = model.nodes.length > GRAPH_CLUSTER_LIMIT ? ` Cluster layout requires ${GRAPH_CLUSTER_LIMIT} files or fewer.` : '';
-    const description = `${model.nodes.length} ${model.nodes.length === 1 ? 'file' : 'files'}, ${model.edges.length} visible ${model.edges.length === 1 ? 'connection' : 'connections'}.${neighborNote}${selfNote}${layoutNote} Dashed lines are inferred; unresolved references appear in file details.`;
+    const focusNote = model.nodes.length > 80 && model.edges.some(edge => edge.from !== edge.to)
+      ? ' Starting near the largest connected group; use Fit graph to see all files.' : '';
+    const description = `${model.nodes.length} ${model.nodes.length === 1 ? 'file' : 'files'}, ${model.edges.length} visible ${model.edges.length === 1 ? 'connection' : 'connections'}.${neighborNote}${selfNote}${layoutNote}${focusNote} Dashed lines are inferred; unresolved references appear in file details.`;
     if (graph && signature === nextSignature) {
       updateSelection();
       status.textContent = description;
@@ -87,6 +107,7 @@ export function createGraphController(container, status, zoomIndicator, selectFi
     try {
       if (!library) library = (await import('./vendor/cytoscape.esm.min.mjs')).default;
       if (request !== generation) return;
+      tooltip.hidden = true;
       if (graph) { graph.destroy(); graph = null; }
       const elements = model.nodes.map(node => ({ data: { id: node.id, label: node.path.split('/').pop(), path: node.path } }));
       for (const edge of model.edges) {
@@ -96,6 +117,13 @@ export function createGraphController(container, status, zoomIndicator, selectFi
         minZoom: 0.1, maxZoom: 4, boxSelectionEnabled: false });
       graph.on('tap', 'node', event => selectFile(event.target.id()));
       graph.on('tap', 'edge', event => selectReference(event.target.id()));
+      graph.on('mouseover', 'node', event => {
+        event.target.addClass('hovered');
+        tooltip.textContent = event.target.data('path');
+        tooltip.hidden = false;
+      });
+      graph.on('mouseout', 'node', event => { event.target.removeClass('hovered'); tooltip.hidden = true; });
+      graph.on('pan zoom', () => { tooltip.hidden = true; graph.nodes('.hovered').removeClass('hovered'); });
       graph.on('zoom', zoomText);
       layout = effectiveGraphLayout(layout, model.nodes.length);
       setAvailable(true, model.nodes.length <= GRAPH_CLUSTER_LIMIT, layout);
@@ -110,6 +138,8 @@ export function createGraphController(container, status, zoomIndicator, selectFi
       container.replaceChildren();
       zoomText();
       setAvailable(false);
+      setFocusAvailable(false);
+      tooltip.hidden = true;
       status.textContent = 'The graph could not be drawn. The file list and details remain available.';
     }
   }
@@ -117,6 +147,15 @@ export function createGraphController(container, status, zoomIndicator, selectFi
   return {
     update,
     fit() { if (graph && graph.nodes().length) { graph.fit(undefined, 35); zoomText(); } },
+    focusSelection() {
+      if (!graph || selected === null) return;
+      const file = graph.getElementById(selected);
+      if (file.empty() || !file.isNode()) return;
+      graph.fit(file.closedNeighborhood(), 70);
+      if (graph.zoom() < 0.7) graph.zoom({ level: 0.7, renderedPosition: { x: graph.width() / 2, y: graph.height() / 2 } });
+      if (graph.zoom() > 1.5) graph.zoom({ level: 1.5, renderedPosition: { x: graph.width() / 2, y: graph.height() / 2 } });
+      zoomText();
+    },
     zoom(factor) {
       if (!graph) return;
       graph.zoom({ level: Math.max(graph.minZoom(), Math.min(graph.maxZoom(), graph.zoom() * factor)),

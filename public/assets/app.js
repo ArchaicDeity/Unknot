@@ -15,13 +15,13 @@ let graphUnavailable = false;
 async function prepareGraph() {
   try {
     const { createGraphController } = await import('./graph.js');
-    graphController = createGraphController(byId('graph'), byId('graph-status'), byId('graph-zoom-level'), selectFile, selectReference, (available, clustersAllowed, layout) => {
+    graphController = createGraphController(byId('graph'), byId('graph-tooltip'), byId('graph-status'), byId('graph-zoom-level'), selectFile, selectReference, (available, clustersAllowed, layout) => {
       for (const id of ['graph-zoom-in', 'graph-zoom-out', 'graph-fit', 'graph-layout']) byId(id).disabled = !available;
       if (available) {
         byId('graph-layout').querySelector('option[value="cose"]').disabled = !clustersAllowed;
         byId('graph-layout').value = layout;
       }
-    });
+    }, available => { byId('graph-focus').disabled = !available; });
     for (const id of ['graph-self', 'graph-neighbors']) byId(id).disabled = false;
     if (state.report) render();
   } catch (error) {
@@ -30,8 +30,14 @@ async function prepareGraph() {
   }
 }
 
-function selectFile(id) {
+function selectFile(id, focusDetails = false) {
+  const file = state.report.nodes.find(item => item.id === id);
+  const query = byId('search').value.trim().toLowerCase();
+  if (focusDetails && file && query && !file.path.toLowerCase().includes(query)) {
+    byId('search').value = file.path;
+  }
   state.selected = id; state.selectedEdge = null; render();
+  if (focusDetails) { byId('details').querySelector('.detail-path')?.focus({ preventScroll: true }); return; }
   const selected = Array.from(byId('files').querySelectorAll('button')).find(button => button.dataset.fileId === id);
   if (selected) selected.focus({ preventScroll: true });
 }
@@ -49,7 +55,17 @@ function section(title, rows) {
   if (!rows.length) { wrapper.appendChild(node('p', 'None found.', 'muted')); return wrapper; }
   const list = node('ul');
   for (const row of rows) {
-    list.appendChild(typeof row === 'string' ? node('li', row) : node('li', row.text, row.selected ? 'reference-selected' : undefined));
+    if (typeof row === 'string') { list.appendChild(node('li', row)); continue; }
+    const item = node('li', undefined, row.selected ? 'reference-selected' : undefined);
+    item.appendChild(document.createTextNode(row.prefix));
+    if (row.fileId) {
+      const link = node('button', row.path, 'reference-link');
+      link.type = 'button'; link.setAttribute('aria-label', 'Open file ' + row.path);
+      link.addEventListener('click', () => selectFile(row.fileId, true));
+      item.appendChild(link);
+    } else item.appendChild(document.createTextNode(row.path));
+    if (row.suffix) item.appendChild(document.createTextNode(row.suffix));
+    list.appendChild(item);
   }
   wrapper.appendChild(list);
   return wrapper;
@@ -60,17 +76,19 @@ function details(report, filteredEdges) {
   container.replaceChildren();
   const file = report.nodes.find(item => item.id === state.selected);
   if (!file) { container.appendChild(node('p', 'Select a file to see its declarations and connections.', 'empty')); return; }
-  container.appendChild(node('p', file.path, 'detail-path'));
+  const path = node('p', file.path, 'detail-path'); path.tabIndex = -1; container.appendChild(path);
   container.appendChild(node('p', 'Parse state: ' + file.parseState, 'muted'));
   container.appendChild(section('Declarations', file.declarations.map(item => item.kind + ' ' + item.name + ' · line ' + item.line)));
   const outgoing = filteredEdges.filter(edge => edge.from === file.id).map(edge => ({
     selected: edge.id === state.selectedEdge,
-    text: (edge.id === state.selectedEdge ? 'Selected: ' : '') + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ' +
-    (edge.to ? edge.to.slice(5) : edge.reasonCode) + (edge.target.candidates.length && !edge.to ? ' · candidates: ' + edge.target.candidates.map(id => id.slice(5)).join(', ') : ''),
+    prefix: (edge.id === state.selectedEdge ? 'Selected: ' : '') + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ',
+    fileId: edge.to, path: edge.to ? edge.to.slice(5) : edge.reasonCode,
+    suffix: edge.target.candidates.length && !edge.to ? ' · candidates: ' + edge.target.candidates.map(id => id.slice(5)).join(', ') : '',
   }));
   container.appendChild(section('Outgoing references', outgoing));
   container.appendChild(section('Incoming references', filteredEdges.filter(edge => edge.to === file.id && edge.from !== file.id)
-    .map(edge => edge.from.slice(5) + ' · ' + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence))));
+    .map(edge => ({ prefix: '', fileId: edge.from, path: edge.from.slice(5),
+      suffix: ' · ' + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) }))));
   container.appendChild(section('Database indicators', (report.findings || []).filter(item => item.fileId === file.id)
     .map(item => item.api + ' · line ' + item.line + ' · Inferred')));
 }
@@ -85,6 +103,10 @@ function render() {
   byId('unresolved-count').textContent = report.edges.filter(edge => edge.confidence === 'unresolved').length;
   byId('finding-count').textContent = (report.findings || []).length;
   byId('warning-count').textContent = report.scan.warnings.length + ' TOTAL';
+  byId('graph-clear').disabled = state.selected === null;
+  byId('graph-selection').textContent = state.selected === null
+    ? 'Select a file to highlight its connections. Hover over a node to see its full path.'
+    : 'Selected: ' + state.selected.slice(5) + '. Its visible connections are highlighted.';
   const query = byId('search').value.trim().toLowerCase();
   const type = byId('type-filter').value, confidence = byId('confidence-filter').value;
   const visible = report.nodes.filter(file => file.path.toLowerCase().includes(query));
@@ -124,11 +146,12 @@ function render() {
   else for (const warning of report.scan.warnings) warnings.appendChild(node('li', warning.fileId.slice(5) + (warning.line ? ':' + warning.line : '') + ' · ' + warning.code));
 }
 
-function setReport(report) {
+function setReport(report, isDemo = false) {
   state.report = validateReport(report);
+  byId('demo-context').hidden = !isDemo;
   state.selected = null;
   state.selectedEdge = null;
-  byId('search').value = '';
+  byId('search').value = isDemo ? 'Capsule/Manager.php' : '';
   byId('confidence-filter').value = 'all';
   const filter = byId('type-filter'); filter.replaceChildren(node('option', 'All types'));
   filter.firstChild.value = 'all';
@@ -155,6 +178,8 @@ for (const id of ['search', 'type-filter', 'confidence-filter']) byId(id).addEve
 byId('graph-zoom-in').addEventListener('click', () => graphController?.zoom(1.25));
 byId('graph-zoom-out').addEventListener('click', () => graphController?.zoom(0.8));
 byId('graph-fit').addEventListener('click', () => graphController?.fit());
+byId('graph-focus').addEventListener('click', () => graphController?.focusSelection());
+byId('graph-clear').addEventListener('click', () => { state.selected = null; state.selectedEdge = null; render(); });
 byId('graph-layout').addEventListener('change', event => graphController?.setLayout(event.target.value));
 byId('graph-self').addEventListener('change', event => graphController?.setIncludeSelf(event.target.checked));
 byId('graph-neighbors').addEventListener('change', render);
@@ -177,11 +202,12 @@ byId('export-summary').addEventListener('click', () => {
 
 prepareGraph();
 const token = location.hash.slice(1);
+const isDemo = new URLSearchParams(location.search).get('demo') === 'laravel';
 history.replaceState(null, '', location.pathname);
 if (/^[a-f0-9]{64}$/.test(token)) {
   const sequence = ++state.loadSequence;
   fetch('/api/report', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store', credentials: 'omit' })
     .then(response => { if (!response.ok) throw new Error('The selected report is unavailable.'); return response.json(); })
-    .then(report => { if (sequence === state.loadSequence) setReport(report); })
+    .then(report => { if (sequence === state.loadSequence) setReport(report, isDemo); })
     .catch(error => { if (sequence === state.loadSequence) message(error.message + ' Choose a local report to continue.'); });
 } else message('Choose a local JSON report to begin.');

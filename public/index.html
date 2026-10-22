@@ -9,13 +9,20 @@
 </head>
 <body>
   <header class="topbar">
-    <a href="/" class="brand"><span class="brand-mark" aria-hidden="true">⌁</span> unknot<span class="brand-dot">.</span></a>
+    <a href="/" class="brand"><img src="/assets/unknot-mark.svg" alt="" width="38" height="38">unknot</a>
     <span class="topbar-note">LOCAL ARCHITECTURE EXPLORER</span>
     <label class="import-button" for="import">Open report<input id="import" type="file" accept=".json,application/json" class="visually-hidden"></label>
   </header>
   <main class="shell">
     <div class="intro"><div><p class="eyebrow">YOUR CODE, IN CONTEXT</p><h1>Untangle the unfamiliar.</h1><p class="muted">A clearer view of the relationships inside your PHP project.</p></div><div class="local-badge"><span class="dot"></span> LOCAL SESSION</div></div>
     <div id="message" class="message" role="status" aria-live="polite">Loading the selected report…</div>
+    <section id="demo-context" class="demo-context" hidden aria-labelledby="demo-title">
+      <div><p class="eyebrow">EXPLORE A REAL CODEBASE</p><h2 id="demo-title">Laravel Database component</h2>
+        <p>A pre-scanned example from <a href="https://github.com/laravel/framework/tree/c42f9abd4a3d2f9a3cd6be109255ddce8092ceb8/src/Illuminate/Database">Laravel framework v13.38.0</a> · MIT licence · scanned 1 November 2026.</p>
+        <p>This covers <code>src/Illuminate/Database</code>, not the entire framework. References outside this folder may appear unresolved.</p>
+        <p>Start with <strong>Capsule/Manager.php</strong> and follow its connection to <strong>Connectors/ConnectionFactory.php</strong>. Clear the search to see every file.</p>
+      </div><span class="chip">SAMPLE REPORT</span>
+    </section>
     <noscript><p>This explorer needs JavaScript. The CLI report is available as JSON.</p></noscript>
     <section id="dashboard" hidden>
       <div class="report-heading"><div><p class="eyebrow">CURRENT REPORT</p><h2 id="project-name"></h2><p class="muted">Static evidence, with uncertainty left visible.</p></div><div class="actions"><button id="export-json" class="button subtle">Export JSON</button><button id="export-summary" class="button subtle">Export summary</button></div></div>
@@ -33,10 +40,14 @@
               <output id="graph-zoom-level" aria-live="polite" aria-label="Graph zoom">—</output>
               <button type="button" id="graph-zoom-in" aria-label="Zoom in" disabled>+</button>
               <button type="button" id="graph-fit" disabled>Fit graph</button>
+              <button type="button" id="graph-focus" disabled>Focus selected file</button>
+              <button type="button" id="graph-clear" disabled>Clear selection</button>
               <label class="graph-self"><input id="graph-self" type="checkbox" disabled> Show same-file references</label>
               <label class="graph-self"><input id="graph-neighbors" type="checkbox" checked disabled> Include connected files in search</label>
             </div>
-            <div id="graph" role="img" aria-label="Interactive dependency graph. Use the file list below for keyboard navigation."></div>
+            <p class="graph-legend"><span><i class="legend-outgoing"></i> Outgoing from selection</span><span><i class="legend-incoming"></i> Incoming to selection</span><span><i class="legend-inferred"></i> Inferred</span></p>
+            <p id="graph-selection" class="graph-selection" aria-live="polite">Select a file to highlight its connections. Hover over a node to see its full path.</p>
+            <div class="graph-stage"><div id="graph" role="img" aria-label="Interactive dependency graph. Use the file list below for keyboard navigation."></div><div id="graph-tooltip" class="graph-tooltip" hidden aria-hidden="true"></div></div>
             <p id="graph-status" class="graph-status" role="status"></p>
           </div>
           <div class="list-title"><h3>Files</h3><span id="list-count" class="muted"></span></div><div id="files" class="file-list" aria-label="File list"></div>

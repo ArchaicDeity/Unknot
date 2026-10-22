@@ -94,6 +94,10 @@ try {
     [$assetStatus, $assetHeaders] = $request('/assets/vendor/cytoscape.esm.min.mjs');
     checkWeb($assetStatus === 200 && str_contains(strtolower($assetHeaders), 'content-type: text/javascript'), 'Bundled graph library must be served locally as JavaScript.');
     checkWeb($request('/assets/graph-model.js')[0] === 200, 'Graph model must be available locally.');
+    checkWeb($request('/assets/graph-layout.js')[0] === 200, 'Graph layouts must be available locally.');
+    checkWeb($request('/assets/graph-selection.js')[0] === 200, 'Graph selection logic must be available locally.');
+    [$logoStatus, $logoHeaders] = $request('/assets/unknot-mark.svg');
+    checkWeb($logoStatus === 200 && str_contains(strtolower($logoHeaders), 'content-type: image/svg+xml'), 'The Unknot mark must be served as SVG.');
     checkWeb($request('/', ['Sec-Fetch-Site' => 'cross-site', 'Sec-Fetch-Mode' => 'navigate'])[0] === 200, 'A cross-site navigation may open the generic shell.');
     checkWeb($request('/api/report')[0] === 401, 'Report requires a capability.');
     checkWeb($request('/api/report', ['Authorization' => 'Bearer ' . str_repeat('b', 64)])[0] === 401, 'Wrong capability must fail.');

@@ -125,7 +125,8 @@ fclose($pipes[1]);
 fclose($pipes[2]);
 $status = proc_close($process);
 if (PHP_OS_FAMILY === 'Linux') {
-    if ($status !== 255 || !str_contains($output . $error, 'OS limit applied') || !str_contains($output . $error, 'Out of memory')) {
+    // PHP builds can report an allocation failure with either of these exit codes.
+    if (!in_array($status, [1, 255], true) || !str_contains($output . $error, 'OS limit applied') || !str_contains($output . $error, 'Out of memory')) {
         throw new RuntimeException('The Linux allocation probe did not show the expected bounded failure (exit ' . $status . '): ' . trim($output . $error));
     }
     $process = proc_open([PHP_BINARY, '-n', '-d', 'memory_limit=128M', __DIR__ . '/worker-memory-probe.php', '--inherited'], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, null, ['bypass_shell' => true]);

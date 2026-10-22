@@ -3,7 +3,7 @@
     "description": "A local architecture explorer for PHP projects.",
     "type": "project",
     "require": {
-        "php": "^8.1",
+        "php": "^8.5",
         "nikic/php-parser": "5.9.0"
     },
     "autoload": {

@@ -30,7 +30,7 @@ jobs:
             --tmpfs /tmp:rw,nosuid,noexec,size=128m -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
             -v "$PWD:/app:ro" -w /app --entrypoint sh \
             php@sha256:d4f6e10eb393de7e3a7a88e8b88e139072dd3ae297f6a5dada8257e6fe32c585 \
-            -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /app/public /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
+            -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /app/public /app/demo /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
 
   windows:
     runs-on: windows-latest

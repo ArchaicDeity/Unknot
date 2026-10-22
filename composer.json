@@ -29,6 +29,7 @@
             "@php tests/source-versions.php",
             "@php tests/database-touchpoints.php",
             "@php tests/web-service.php",
+            "@php tests/demo-report.php",
             "@php tests/worker-connections.php",
             "@php tests/worker-isolation.php",
             "@php tests/worker-limits.php",

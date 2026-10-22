@@ -9,7 +9,7 @@ use Unknot\Report\ReportReader;
 
 final class Server
 {
-    public function run(string $reportPath, int $port): int
+    public function run(string $reportPath, int $port, bool $isDemo = false): int
     {
         if ($port < 1024 || $port > 65535) {
             throw new RuntimeException('Port must be between 1024 and 65535.');
@@ -55,7 +55,8 @@ final class Server
             if (!$ready) {
                 throw new RuntimeException('Could not start the local server; the port may already be in use.');
             }
-            fwrite(STDOUT, "Open http://127.0.0.1:{$port}/#{$token}\nKeep this URL private. Press Ctrl+C to stop.\n");
+            $query = $isDemo ? '?demo=laravel' : '';
+            fwrite(STDOUT, "Open http://127.0.0.1:{$port}/{$query}#{$token}\nKeep this URL private. Press Ctrl+C to stop.\n");
             while (proc_get_status($process)['running']) {
                 usleep(250000);
             }

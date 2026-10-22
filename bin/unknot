@@ -18,11 +18,12 @@ require $autoload;
 
 $arguments = $argv;
 array_shift($arguments);
-if (($arguments[0] ?? '') === 'serve') {
-    $reportPath = null;
+if (in_array($arguments[0] ?? '', ['serve', 'demo'], true)) {
+    $isDemo = $arguments[0] === 'demo';
+    $reportPath = $isDemo ? dirname(__DIR__) . '/demo/laravel-database.json' : null;
     $port = 8765;
     foreach (array_slice($arguments, 1) as $argument) {
-        if (str_starts_with($argument, '--report=')) {
+        if (!$isDemo && str_starts_with($argument, '--report=')) {
             $reportPath = substr($argument, strlen('--report='));
         } elseif (preg_match('/^--port=([0-9]{1,5})$/', $argument, $match)) {
             $port = (int) $match[1];
@@ -36,14 +37,16 @@ if (($arguments[0] ?? '') === 'serve') {
         exit(1);
     }
     try {
-        exit((new Server())->run($reportPath, $port));
+        exit((new Server())->run($reportPath, $port, $isDemo));
     } catch (Throwable $error) {
         fwrite(STDERR, "Server failed: " . $error->getMessage() . "\n");
         exit(1);
     }
 }
 if (count($arguments) < 2 || $arguments[0] !== 'scan') {
-    fwrite(STDERR, "Usage: php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>]\n");
+    fwrite(STDERR, "Usage: php bin/unknot demo [--port=8765]\n"
+        . "       php bin/unknot serve --report=<report.json> [--port=8765]\n"
+        . "       php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>]\n");
     exit(1);
 }
 $root = $arguments[1];

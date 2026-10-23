@@ -43,11 +43,16 @@
               <button type="button" id="graph-fit" disabled>Fit graph</button>
               <button type="button" id="graph-focus" disabled>Focus selected file</button>
               <button type="button" id="graph-clear" disabled>Clear selection</button>
+              <button type="button" id="explore-start" disabled>Explore selected file</button>
+              <button type="button" id="explore-expand" disabled>Expand one step</button>
+              <button type="button" id="explore-back" disabled>Undo expansion</button>
+              <button type="button" id="explore-exit" disabled>Return to search</button>
               <label class="graph-self"><input id="graph-self" type="checkbox" disabled> Show same-file references</label>
               <label class="graph-self"><input id="graph-neighbors" type="checkbox" checked disabled> Include connected files in search</label>
             </div>
             <p class="graph-legend"><span><i class="legend-outgoing"></i> Outgoing from selection</span><span><i class="legend-incoming"></i> Incoming to selection</span><span><i class="legend-inferred"></i> Inferred</span></p>
             <p id="graph-selection" class="graph-selection" aria-live="polite">Select a file to highlight its connections. Hover over a node to see its full path.</p>
+            <p id="exploration-status" class="graph-selection" role="status">Select a file to explore its reported connections one step at a time.</p>
             <div class="graph-stage"><div id="graph" role="img" aria-label="Interactive dependency graph. Use the file list below for keyboard navigation."></div><div id="graph-tooltip" class="graph-tooltip" hidden aria-hidden="true"></div></div>
             <p id="graph-status" class="graph-status" role="status"></p>
           </div>

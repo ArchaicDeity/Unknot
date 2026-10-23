@@ -18,6 +18,13 @@ export function connectedNodes(matches, nodes, edges) {
   return nodes.filter(node => included.has(node.id));
 }
 
+/** Add one connection layer without silently dropping nodes or exceeding graph budgets. */
+export function expandNeighborhood(current, nodes, edges, options = {}) {
+  const expanded = connectedNodes(current, nodes, edges);
+  const model = graphModel(expanded, edges, options);
+  return { nodes: model.reason === null ? expanded : current, reason: model.reason };
+}
+
 /** Only references with a visible destination can be drawn as edges. */
 export function graphModel(nodes, edges, options = {}) {
   if (nodes.length > GRAPH_NODE_LIMIT) {

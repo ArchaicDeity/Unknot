@@ -1,8 +1,9 @@
 import { readReportFile, validateReport, hotspots } from './report.js';
 import { buildSearchIndex, searchFiles, fileMatchesQuery } from './search.js';
+import { expandNeighborhood } from './graph-model.js';
 
 const byId = id => document.getElementById(id);
-const state = { report: null, searchIndex: [], selected: null, selectedEdge: null, history: [], sort: 'score', ascending: false, loadSequence: 0 };
+const state = { report: null, searchIndex: [], selected: null, selectedEdge: null, history: [], exploration: null, explorationMessage: '', sort: 'score', ascending: false, loadSequence: 0 };
 const message = text => { byId('message').textContent = text; };
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
@@ -40,8 +41,12 @@ function selectFile(id, focusDetails = false) {
   const file = state.report.nodes.find(item => item.id === id);
   if (!file) return;
   if (state.selected !== id) rememberSelection();
+  if (state.exploration && !state.exploration.ids.includes(id)) {
+    state.exploration = null;
+    state.explorationMessage = 'Focused view closed because the selected file was outside it.';
+  }
   const query = byId('search').value.trim().toLowerCase();
-  if (focusDetails && query && !fileMatchesQuery(state.searchIndex, id, query)) {
+  if (focusDetails && !state.exploration && query && !fileMatchesQuery(state.searchIndex, id, query)) {
     byId('search').value = file.path;
   }
   state.selected = id; state.selectedEdge = null; render();
@@ -121,15 +126,22 @@ function render() {
   if (!report) return;
   byId('graph-clear').disabled = state.selected === null;
   byId('details-back').disabled = state.history.length === 0;
+  byId('explore-start').disabled = state.selected === null;
+  byId('explore-expand').disabled = !state.exploration;
+  byId('explore-back').disabled = !state.exploration || state.exploration.history.length === 0;
+  byId('explore-exit').disabled = !state.exploration;
+  byId('graph-neighbors').disabled = !!state.exploration || !graphController;
+  byId('exploration-status').textContent = state.explorationMessage || 'Select a file to explore its reported connections one step at a time.';
   byId('graph-selection').textContent = state.selected === null
     ? 'Select a file to highlight its connections. Hover over a node to see its full path.'
     : 'Selected: ' + state.selected.slice(5) + '. Its visible connections are highlighted.';
   const query = byId('search').value.trim().toLowerCase();
   const type = byId('type-filter').value, confidence = byId('confidence-filter').value;
-  const results = searchFiles(state.searchIndex, query);
+  const focusedIds = state.exploration ? new Set(state.exploration.ids) : null;
+  const results = searchFiles(state.searchIndex, focusedIds ? '' : query).filter(result => !focusedIds || focusedIds.has(result.file.id));
   const visible = results.map(result => result.file);
   const filteredEdges = report.edges.filter(edge => (type === 'all' || edge.type === type) && (confidence === 'all' || edge.confidence === confidence));
-  byId('list-count').textContent = visible.length + ' of ' + report.nodes.length;
+  byId('list-count').textContent = focusedIds ? visible.length + ' in focused view' : visible.length + ' of ' + report.nodes.length;
   const fileList = byId('files'); fileList.replaceChildren();
   for (const result of results) {
     const file = result.file;
@@ -143,7 +155,7 @@ function render() {
   }
   if (graphController) {
     graphController.update(visible, filteredEdges, state.selected, state.selectedEdge, {
-      allNodes: report.nodes, includeNeighbors: query !== '' && byId('graph-neighbors').checked,
+      allNodes: report.nodes, includeNeighbors: !focusedIds && query !== '' && byId('graph-neighbors').checked,
     }).catch(() => {
       byId('graph-status').textContent = 'The graph could not be drawn. The file list and details remain available.';
     });
@@ -190,6 +202,8 @@ function setReport(report, isDemo = false) {
   state.selected = null;
   state.selectedEdge = null;
   state.history = [];
+  state.exploration = null;
+  state.explorationMessage = '';
   byId('search').value = isDemo ? 'Capsule/Manager.php' : '';
   byId('confidence-filter').value = 'all';
   const filter = byId('type-filter'); filter.replaceChildren(node('option', 'All types'));
@@ -213,18 +227,72 @@ byId('import').addEventListener('change', async event => {
   catch (error) { if (sequence === state.loadSequence) message('Could not open report. The previous report is unchanged: ' + error.message); }
   event.target.value = '';
 });
-for (const id of ['search', 'type-filter', 'confidence-filter']) byId(id).addEventListener(id === 'search' ? 'input' : 'change', render);
+byId('search').addEventListener('input', () => {
+  state.exploration = null;
+  state.explorationMessage = '';
+  render();
+});
+for (const id of ['type-filter', 'confidence-filter']) byId(id).addEventListener('change', () => {
+  if (state.exploration) {
+    state.exploration = { ids: [state.selected], history: [] };
+    state.explorationMessage = 'Filters changed. The focused view restarted from the selected file.';
+  }
+  render();
+});
 byId('graph-zoom-in').addEventListener('click', () => graphController?.zoom(1.25));
 byId('graph-zoom-out').addEventListener('click', () => graphController?.zoom(0.8));
 byId('graph-fit').addEventListener('click', () => graphController?.fit());
 byId('graph-focus').addEventListener('click', () => graphController?.focusSelection());
-byId('graph-clear').addEventListener('click', () => { state.selected = null; state.selectedEdge = null; state.history = []; render(); });
+byId('graph-clear').addEventListener('click', () => { state.selected = null; state.selectedEdge = null; state.history = []; state.exploration = null; state.explorationMessage = ''; render(); });
 byId('details-back').addEventListener('click', () => {
   const previous = state.history.pop();
   if (!previous) return;
   byId('search').value = previous.query;
+  if (state.exploration && !state.exploration.ids.includes(previous.fileId)) {
+    state.exploration = null;
+    state.explorationMessage = 'Focused view closed because the previous file was outside it.';
+  }
   state.selected = previous.fileId; state.selectedEdge = previous.edgeId; render();
   byId('details').querySelector('.detail-path')?.focus({ preventScroll: true });
+});
+byId('explore-start').addEventListener('click', () => {
+  if (state.selected === null) return;
+  state.exploration = { ids: [state.selected], history: [] };
+  state.explorationMessage = 'Focused view: 1 file. Expand to add its reported incoming and outgoing connections.';
+  render();
+});
+byId('explore-expand').addEventListener('click', () => {
+  if (!state.exploration) return;
+  const ids = new Set(state.exploration.ids);
+  const current = state.report.nodes.filter(file => ids.has(file.id));
+  const type = byId('type-filter').value, confidence = byId('confidence-filter').value;
+  const edges = state.report.edges.filter(edge => (type === 'all' || edge.type === type) && (confidence === 'all' || edge.confidence === confidence));
+  const next = expandNeighborhood(current, state.report.nodes, edges, { includeSelf: byId('graph-self').checked });
+  if (next.reason) {
+    state.explorationMessage = next.reason === 'node-limit' ? 'Expansion would exceed the 500-file graph limit. Narrow the reference filters.'
+      : 'Expansion would exceed the 2,000-connection graph limit. Narrow the reference filters.';
+  } else if (next.nodes.length === current.length) {
+    state.explorationMessage = 'No additional reported connections match the current filters.';
+  } else {
+    state.exploration.history.push(state.exploration.ids);
+    state.exploration.ids = next.nodes.map(file => file.id);
+    state.explorationMessage = 'Focused view: ' + next.nodes.length + ' files. Reported incoming and outgoing connections are included; inferred connections are dashed and unresolved targets are not drawn.';
+  }
+  render();
+});
+byId('explore-back').addEventListener('click', () => {
+  if (!state.exploration || !state.exploration.history.length) return;
+  state.exploration.ids = state.exploration.history.pop();
+  if (!state.exploration.ids.includes(state.selected)) {
+    state.selected = state.exploration.ids[0]; state.selectedEdge = null;
+  }
+  state.explorationMessage = 'Focused view: ' + state.exploration.ids.length + ' files after undoing the last expansion.';
+  render();
+});
+byId('explore-exit').addEventListener('click', () => {
+  state.exploration = null;
+  state.explorationMessage = 'Showing search results again.';
+  render();
 });
 byId('graph-layout').addEventListener('change', event => graphController?.setLayout(event.target.value));
 byId('graph-self').addEventListener('change', event => graphController?.setIncludeSelf(event.target.checked));

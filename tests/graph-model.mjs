@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import cytoscape from 'cytoscape';
 
 const source = await readFile(new URL('../public/assets/graph-model.js', import.meta.url));
-const { graphModel, connectedNodes, effectiveGraphLayout, GRAPH_NODE_LIMIT, GRAPH_EDGE_LIMIT, GRAPH_CLUSTER_LIMIT } = await import('data:text/javascript;base64,' + source.toString('base64'));
+const { graphModel, connectedNodes, expandNeighborhood, effectiveGraphLayout, GRAPH_NODE_LIMIT, GRAPH_EDGE_LIMIT, GRAPH_CLUSTER_LIMIT } = await import('data:text/javascript;base64,' + source.toString('base64'));
 const layoutSource = await readFile(new URL('../public/assets/graph-layout.js', import.meta.url));
 const { runGraphLayout } = await import('data:text/javascript;base64,' + layoutSource.toString('base64'));
 const selectionSource = await readFile(new URL('../public/assets/graph-selection.js', import.meta.url));
@@ -22,6 +22,12 @@ const model = graphModel(files.slice(0, 2), edges);
 assert.deepEqual(connectedNodes([files[0]], files, edges).map(file => file.id), ['file:A', 'file:B']);
 assert.deepEqual(connectedNodes([files[1]], files, edges).map(file => file.id), ['file:A', 'file:B', 'file:C']);
 assert.deepEqual(connectedNodes([], files, edges), []);
+const firstStep = expandNeighborhood([files[0]], files, edges);
+assert.deepEqual(firstStep.nodes.map(file => file.id), ['file:A', 'file:B']);
+assert.equal(firstStep.reason, null);
+assert.deepEqual(expandNeighborhood(firstStep.nodes, files, edges).nodes.map(file => file.id), ['file:A', 'file:B', 'file:C']);
+assert.deepEqual(expandNeighborhood([files[0]], files, edges.filter(edge => edge.confidence === 'heuristic')).nodes.map(file => file.id), ['file:A', 'file:B']);
+assert.deepEqual(expandNeighborhood([files[2]], files, []).nodes.map(file => file.id), ['file:C']);
 assert.deepEqual(model.edges.map(edge => edge.id), ['edge:1', 'edge:2']);
 assert.equal(model.hiddenSelfReferences, 1);
 const withSelf = graphModel(files.slice(0, 2), edges, { includeSelf: true });
@@ -30,6 +36,14 @@ assert.equal(graphModel([], edges).reason, 'empty');
 assert.equal(graphModel(Array.from({ length: GRAPH_NODE_LIMIT + 1 }, (_, i) => ({ id: String(i) })), []).reason, 'node-limit');
 const many = Array.from({ length: GRAPH_EDGE_LIMIT + 1 }, (_, i) => ({ id: 'edge:' + i, from: 'file:A', to: 'file:B' }));
 assert.equal(graphModel(files, many).reason, 'edge-limit');
+const edgeLimited = expandNeighborhood([files[0]], files, many);
+assert.equal(edgeLimited.reason, 'edge-limit');
+assert.deepEqual(edgeLimited.nodes, [files[0]], 'A rejected expansion retains the previous view.');
+const wideNodes = Array.from({ length: GRAPH_NODE_LIMIT + 1 }, (_, i) => ({ id: 'file:' + i }));
+const wideEdges = wideNodes.slice(1).map((item, i) => ({ id: 'edge:' + i, from: 'file:0', to: item.id }));
+const nodeLimited = expandNeighborhood([wideNodes[0]], wideNodes, wideEdges);
+assert.equal(nodeLimited.reason, 'node-limit');
+assert.deepEqual(nodeLimited.nodes, [wideNodes[0]]);
 assert.equal(graphModel([files[2]], many).reason, null, 'Hidden endpoints must not exhaust the visible edge budget.');
 
 const graph = cytoscape({ headless: true, elements: [

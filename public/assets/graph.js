@@ -32,6 +32,7 @@ export function createGraphController(container, tooltip, status, zoomIndicator,
   let selectedEdge = null;
   let layout = 'cose';
   let includeSelf = false;
+  let focusedExploration = false;
   let lastInput = null;
 
   // The canvas must track its container when the dashboard changes width.
@@ -50,7 +51,7 @@ export function createGraphController(container, tooltip, status, zoomIndicator,
   function updateSelection() {
     if (!graph) return;
     graph.nodes('.current').removeStyle('font-size');
-    setFocusAvailable(applyGraphSelection(graph, selected, selectedEdge));
+    setFocusAvailable(applyGraphSelection(graph, selected, selectedEdge, { dimUnrelated: !focusedExploration }));
     zoomText();
   }
 
@@ -73,6 +74,7 @@ export function createGraphController(container, tooltip, status, zoomIndicator,
     lastInput = { nodes, edges, current, currentEdge, options };
     selected = current;
     selectedEdge = currentEdge;
+    focusedExploration = options.focusedExploration === true;
     const expanded = options.includeNeighbors ? connectedNodes(nodes, options.allNodes, edges) : nodes;
     const model = graphModel(expanded, edges, { includeSelf });
     const request = ++generation;

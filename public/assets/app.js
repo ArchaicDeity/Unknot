@@ -156,6 +156,7 @@ function render() {
   if (graphController) {
     graphController.update(visible, filteredEdges, state.selected, state.selectedEdge, {
       allNodes: report.nodes, includeNeighbors: !focusedIds && query !== '' && byId('graph-neighbors').checked,
+      focusedExploration: !!focusedIds,
     }).catch(() => {
       byId('graph-status').textContent = 'The graph could not be drawn. The file list and details remain available.';
     });

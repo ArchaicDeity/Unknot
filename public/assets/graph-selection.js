@@ -1,11 +1,11 @@
 /** Emphasize the selected file and its visible, directly connected references. */
-export function applyGraphSelection(graph, selectedId, selectedEdgeId) {
+export function applyGraphSelection(graph, selectedId, selectedEdgeId, options = {}) {
   graph.elements().removeClass('dimmed related incoming outgoing current');
   const selected = selectedId === null ? graph.collection() : graph.getElementById(selectedId);
   if (selected.empty() || !selected.isNode()) return false;
 
   const edges = selected.connectedEdges();
-  graph.elements().addClass('dimmed');
+  if (options.dimUnrelated !== false) graph.elements().addClass('dimmed');
   edges.removeClass('dimmed');
   edges.connectedNodes().removeClass('dimmed').addClass('related');
   selected.removeClass('dimmed related').addClass('current');

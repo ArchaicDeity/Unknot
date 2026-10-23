@@ -4,7 +4,7 @@ Unknot is a local PHP architecture explorer. Its first command scans a directory
 
 ## Try the Laravel demo
 
-With PHP 8.5 and Composer 2.10.3 or newer installed, run:
+With PHP 8.5 and the current stable Composer 2 installed, run:
 
 ```sh
 composer install
@@ -19,7 +19,7 @@ Start with `Capsule/Manager.php` and inspect the resolved reference to `Connecto
 
 ## Foundation prototype
 
-The current prototype requires PHP 8.5 and Composer 2.10.3 or newer. Install dependencies and run the included synthetic fixture:
+The current prototype requires PHP 8.5 and Composer 2. Compatibility has been checked with Composer 2.10.3, but use a current stable Composer release for security fixes. Install dependencies and run the included synthetic fixture:
 
 ```sh
 composer install

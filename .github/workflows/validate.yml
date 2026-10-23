@@ -20,10 +20,10 @@ jobs:
         run: npm run verify:vendor && npm test
       - name: Install dependencies
         run: |
-          docker run --rm -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
+          docker run --rm -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp \
             -v "$PWD:/app" -w /app --entrypoint sh \
             composer@sha256:66c00f4ea1c6a01364d75460bb2837886388e1d5b2b1b6e0f22c8788eb4e73ad \
-            -c 'composer --no-cache install --no-interaction --no-scripts --prefer-dist && cp /usr/bin/composer /app/.composer-ci.phar'
+            -c 'cd /tmp && composer self-update --2 --no-interaction && composer --version && cd /app && composer --no-cache install --no-interaction --no-scripts --prefer-dist && cp /usr/bin/composer /app/.composer-ci.phar'
       - name: Test on PHP 8.5.12
         run: |
           docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
@@ -41,10 +41,12 @@ jobs:
       - uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1
         with:
           php-version: '8.5'
-          tools: composer:2.10.3
+          tools: composer:v2
           coverage: none
       - name: Install dependencies
-        run: composer install --no-interaction --no-scripts --prefer-dist
+        run: |
+          composer --version
+          composer install --no-interaction --no-scripts --prefer-dist
         env:
           COMPOSER_HOME: ${{ runner.temp }}\unknot-composer
       - name: Test

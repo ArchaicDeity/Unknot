@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const source = await readFile(new URL('../public/assets/search.js', import.meta.url));
+const { buildSearchIndex, searchFiles, fileMatchesQuery } = await import('data:text/javascript;base64,' + source.toString('base64'));
+const files = [
+  { id: 'file:first.php', path: 'first.php', declarations: [{ name: 'App\\Shared', kind: 'class', line: 3 }] },
+  { id: 'file:second.php', path: 'second.php', declarations: [{ name: 'App\\Shared', kind: 'class', line: 8 }] },
+  { id: 'file:contracts.php', path: 'contracts.php', declarations: [{ name: 'App\\Contract', kind: 'interface', line: 4 }] },
+];
+const index = buildSearchIndex(files);
+assert.deepEqual(searchFiles(index, ' APP\\SHARED ').map(row => row.file.id), ['file:first.php', 'file:second.php']);
+assert.deepEqual(searchFiles(index, 'interface').map(row => row.file.id), ['file:contracts.php']);
+assert.deepEqual(searchFiles(index, 'first.php').map(row => row.file.id), ['file:first.php']);
+assert.equal(searchFiles(index, 'methodNotInReport').length, 0);
+assert.equal(searchFiles(index, '').length, 3);
+assert.equal(searchFiles(index, 'shared')[1].declarations[0].line, 8);
+assert.equal(fileMatchesQuery(index, 'file:first.php', 'app\\shared'), true);
+assert.equal(fileMatchesQuery(index, 'file:missing.php', ''), false);
+const crowded = buildSearchIndex([{ id: 'file:many.php', path: 'many.php', declarations: Array.from({ length: 7 }, (_, n) => ({ name: 'Match' + n, kind: 'class', line: n + 1 })) }]);
+assert.equal(searchFiles(crowded, 'match')[0].declarations.length, 3);
+assert.equal(searchFiles(crowded, 'match')[0].extra, 4);
+assert.equal(files[0].declarations[0].name, 'App\\Shared');
+console.log('Declaration search checks passed.');

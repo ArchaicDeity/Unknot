@@ -30,7 +30,8 @@
       <div class="workspace">
         <section class="panel explorer" aria-labelledby="explorer-title">
           <div class="panel-head"><div><p class="eyebrow">EXPLORE</p><h2 id="explorer-title">Connections</h2></div><span class="chip">FILE LEVEL</span></div>
-          <div class="controls"><label>Search files <input id="search" type="search" placeholder="e.g. Orders.php" autocomplete="off"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
+          <div class="controls"><label>Search files and declarations <input id="search" type="search" placeholder="Path, class, interface…" autocomplete="off" aria-describedby="search-scope"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
+          <p id="search-scope" class="muted search-scope">Searches file paths and reported declaration names or kinds. Methods and runtime uses are not indexed.</p>
           <div class="graph-wrap">
             <div class="graph-label"><span>DEPENDENCY MAP</span><span>DRAG TO EXPLORE · SCROLL TO ZOOM</span></div>
             <div class="graph-toolbar" role="group" aria-label="Graph controls">
@@ -52,7 +53,7 @@
           </div>
           <div class="list-title"><h3>Files</h3><span id="list-count" class="muted"></span></div><div id="files" class="file-list" aria-label="File list"></div>
         </section>
-        <aside class="panel details" aria-labelledby="details-title"><div class="panel-head"><div><p class="eyebrow">INSPECT</p><h2 id="details-title">File details</h2></div><span class="chip">EVIDENCE</span></div><div id="details"><p class="empty">Select a file to see its declarations and connections.</p></div></aside>
+        <aside class="panel details" aria-labelledby="details-title"><div class="panel-head"><div><p class="eyebrow">INSPECT</p><h2 id="details-title">File details</h2></div><span class="chip">EVIDENCE</span></div><button id="details-back" class="button subtle details-back" type="button" disabled>Back to previous file</button><div id="details"><p class="empty">Select a file to see its declarations and connections.</p></div></aside>
       </div>
       <section class="panel hotspots" aria-labelledby="hotspots-title"><div class="panel-head"><div><p class="eyebrow">WHERE TO LOOK</p><h2 id="hotspots-title">Hotspots</h2><p class="muted">A navigation aid, not a risk score. Score = 2 × inbound + outbound + 3 × query indicators.</p></div></div><div class="table-scroll"><table><thead><tr><th><button data-sort="path">File</button></th><th><button data-sort="inbound">Inbound</button></th><th><button data-sort="outbound">Outbound</button></th><th><button data-sort="database">DB queries</button></th><th><button data-sort="score">Score</button></th></tr></thead><tbody id="hotspots"></tbody></table></div></section>
       <section class="panel diagnostics" aria-labelledby="warnings-title"><div class="panel-head"><div><p class="eyebrow">WHAT WE COULDN'T RESOLVE</p><h2 id="warnings-title">Diagnostics</h2></div><span id="warning-count" class="chip"></span></div><ul id="warnings"></ul></section>

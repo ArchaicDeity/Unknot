@@ -1,7 +1,8 @@
 import { readReportFile, validateReport, hotspots } from './report.js';
+import { buildSearchIndex, searchFiles, fileMatchesQuery } from './search.js';
 
 const byId = id => document.getElementById(id);
-const state = { report: null, selected: null, selectedEdge: null, sort: 'score', ascending: false, loadSequence: 0 };
+const state = { report: null, searchIndex: [], selected: null, selectedEdge: null, history: [], sort: 'score', ascending: false, loadSequence: 0 };
 const message = text => { byId('message').textContent = text; };
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
@@ -30,10 +31,17 @@ async function prepareGraph() {
   }
 }
 
+function rememberSelection() {
+  if (state.selected === null) return;
+  state.history.push({ fileId: state.selected, edgeId: state.selectedEdge, query: byId('search').value });
+  if (state.history.length > 100) state.history.shift();
+}
 function selectFile(id, focusDetails = false) {
   const file = state.report.nodes.find(item => item.id === id);
+  if (!file) return;
+  if (state.selected !== id) rememberSelection();
   const query = byId('search').value.trim().toLowerCase();
-  if (focusDetails && file && query && !file.path.toLowerCase().includes(query)) {
+  if (focusDetails && query && !fileMatchesQuery(state.searchIndex, id, query)) {
     byId('search').value = file.path;
   }
   state.selected = id; state.selectedEdge = null; render();
@@ -44,6 +52,7 @@ function selectFile(id, focusDetails = false) {
 function selectReference(id) {
   const edge = state.report.edges.find(item => item.id === id);
   if (!edge) return;
+  if (state.selected !== edge.from) rememberSelection();
   state.selected = edge.from;
   state.selectedEdge = edge.id;
   render();
@@ -65,6 +74,19 @@ function section(title, rows) {
       item.appendChild(link);
     } else item.appendChild(document.createTextNode(row.path));
     if (row.suffix) item.appendChild(document.createTextNode(row.suffix));
+    if (row.candidates?.length) {
+      const candidates = node('ul', undefined, 'reference-candidates');
+      for (const candidate of row.candidates.slice(0, 20)) {
+        const candidateItem = node('li');
+        const link = node('button', candidate.slice(5), 'reference-link');
+        link.type = 'button'; link.setAttribute('aria-label', 'Open possible candidate ' + candidate.slice(5));
+        link.addEventListener('click', () => selectFile(candidate, true));
+        candidateItem.appendChild(link); candidates.appendChild(candidateItem);
+      }
+      if (row.candidates.length > 20) candidates.appendChild(node('li', (row.candidates.length - 20) + ' more candidates not shown.'));
+      item.appendChild(node('p', 'Possible candidates (not confirmed):', 'muted'));
+      item.appendChild(candidates);
+    }
     list.appendChild(item);
   }
   wrapper.appendChild(list);
@@ -83,12 +105,13 @@ function details(report, filteredEdges) {
     selected: edge.id === state.selectedEdge,
     prefix: (edge.id === state.selectedEdge ? 'Selected: ' : '') + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ',
     fileId: edge.to, path: edge.to ? edge.to.slice(5) : edge.reasonCode,
-    suffix: edge.target.candidates.length && !edge.to ? ' · candidates: ' + edge.target.candidates.map(id => id.slice(5)).join(', ') : '',
+    suffix: edge.to ? ' · ' + edge.reasonCode : '',
+    candidates: edge.to === null ? edge.target.candidates : [],
   }));
   container.appendChild(section('Outgoing references', outgoing));
   container.appendChild(section('Incoming references', filteredEdges.filter(edge => edge.to === file.id && edge.from !== file.id)
     .map(edge => ({ prefix: '', fileId: edge.from, path: edge.from.slice(5),
-      suffix: ' · ' + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) }))));
+      suffix: ' · ' + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ' + edge.reasonCode }))));
   container.appendChild(section('Database indicators', (report.findings || []).filter(item => item.fileId === file.id)
     .map(item => item.api + ' · line ' + item.line + ' · Inferred')));
 }
@@ -96,27 +119,26 @@ function details(report, filteredEdges) {
 function render() {
   const report = state.report;
   if (!report) return;
-  byId('dashboard').hidden = false;
-  byId('project-name').textContent = report.scan.rootLabel;
-  byId('file-count').textContent = report.nodes.length;
-  byId('edge-count').textContent = report.edges.length;
-  byId('unresolved-count').textContent = report.edges.filter(edge => edge.confidence === 'unresolved').length;
-  byId('finding-count').textContent = (report.findings || []).length;
-  byId('warning-count').textContent = report.scan.warnings.length + ' TOTAL';
   byId('graph-clear').disabled = state.selected === null;
+  byId('details-back').disabled = state.history.length === 0;
   byId('graph-selection').textContent = state.selected === null
     ? 'Select a file to highlight its connections. Hover over a node to see its full path.'
     : 'Selected: ' + state.selected.slice(5) + '. Its visible connections are highlighted.';
   const query = byId('search').value.trim().toLowerCase();
   const type = byId('type-filter').value, confidence = byId('confidence-filter').value;
-  const visible = report.nodes.filter(file => file.path.toLowerCase().includes(query));
+  const results = searchFiles(state.searchIndex, query);
+  const visible = results.map(result => result.file);
   const filteredEdges = report.edges.filter(edge => (type === 'all' || edge.type === type) && (confidence === 'all' || edge.confidence === confidence));
   byId('list-count').textContent = visible.length + ' of ' + report.nodes.length;
   const fileList = byId('files'); fileList.replaceChildren();
-  for (const file of visible) {
+  for (const result of results) {
+    const file = result.file;
     const button = node('button', undefined, 'file-item' + (file.id === state.selected ? ' selected' : ''));
     button.type = 'button'; button.dataset.fileId = file.id; button.setAttribute('aria-pressed', String(file.id === state.selected));
-    button.appendChild(node('span', file.path)); button.appendChild(node('small', file.parseState));
+    const label = node('span', undefined, 'file-label'); label.appendChild(node('span', file.path));
+    for (const declaration of result.declarations) label.appendChild(node('span', declaration.kind + ' ' + declaration.name + ' · line ' + declaration.line, 'search-match'));
+    if (result.extra) label.appendChild(node('span', result.extra + ' more matching declarations', 'search-match'));
+    button.appendChild(label); button.appendChild(node('small', file.parseState));
     button.addEventListener('click', () => selectFile(file.id)); fileList.appendChild(button);
   }
   if (graphController) {
@@ -129,6 +151,11 @@ function render() {
     byId('graph-status').textContent = 'Preparing the dependency map…';
   }
   details(report, filteredEdges);
+}
+
+function renderHotspots() {
+  const report = state.report;
+  if (!report) return;
   const rows = hotspots(report).sort((a, b) => {
     const comparison = typeof a[state.sort] === 'string' ? a[state.sort].localeCompare(b[state.sort]) : a[state.sort] - b[state.sort];
     return (state.ascending ? comparison : -comparison) || a.path.localeCompare(b.path);
@@ -141,6 +168,16 @@ function render() {
     for (const field of ['inbound', 'outbound', 'database', 'score']) tr.appendChild(node('td', String(row[field])));
     body.appendChild(tr);
   }
+}
+
+function renderReportSummary(report) {
+  byId('dashboard').hidden = false;
+  byId('project-name').textContent = report.scan.rootLabel;
+  byId('file-count').textContent = report.nodes.length;
+  byId('edge-count').textContent = report.edges.length;
+  byId('unresolved-count').textContent = report.edges.filter(edge => edge.confidence === 'unresolved').length;
+  byId('finding-count').textContent = (report.findings || []).length;
+  byId('warning-count').textContent = report.scan.warnings.length + ' TOTAL';
   const warnings = byId('warnings'); warnings.replaceChildren();
   if (!report.scan.warnings.length) warnings.appendChild(node('li', 'No diagnostics in this report.'));
   else for (const warning of report.scan.warnings) warnings.appendChild(node('li', warning.fileId.slice(5) + (warning.line ? ':' + warning.line : '') + ' · ' + warning.code));
@@ -148,9 +185,11 @@ function render() {
 
 function setReport(report, isDemo = false) {
   state.report = validateReport(report);
+  state.searchIndex = buildSearchIndex(report.nodes);
   byId('demo-context').hidden = !isDemo;
   state.selected = null;
   state.selectedEdge = null;
+  state.history = [];
   byId('search').value = isDemo ? 'Capsule/Manager.php' : '';
   byId('confidence-filter').value = 'all';
   const filter = byId('type-filter'); filter.replaceChildren(node('option', 'All types'));
@@ -158,7 +197,7 @@ function setReport(report, isDemo = false) {
   for (const type of [...new Set(report.edges.map(edge => edge.type))].sort()) {
     const option = node('option', type); option.value = type; filter.appendChild(option);
   }
-  message(''); render();
+  message(''); renderReportSummary(report); renderHotspots(); render();
 }
 
 function download(name, contents, mime) {
@@ -179,13 +218,20 @@ byId('graph-zoom-in').addEventListener('click', () => graphController?.zoom(1.25
 byId('graph-zoom-out').addEventListener('click', () => graphController?.zoom(0.8));
 byId('graph-fit').addEventListener('click', () => graphController?.fit());
 byId('graph-focus').addEventListener('click', () => graphController?.focusSelection());
-byId('graph-clear').addEventListener('click', () => { state.selected = null; state.selectedEdge = null; render(); });
+byId('graph-clear').addEventListener('click', () => { state.selected = null; state.selectedEdge = null; state.history = []; render(); });
+byId('details-back').addEventListener('click', () => {
+  const previous = state.history.pop();
+  if (!previous) return;
+  byId('search').value = previous.query;
+  state.selected = previous.fileId; state.selectedEdge = previous.edgeId; render();
+  byId('details').querySelector('.detail-path')?.focus({ preventScroll: true });
+});
 byId('graph-layout').addEventListener('change', event => graphController?.setLayout(event.target.value));
 byId('graph-self').addEventListener('change', event => graphController?.setIncludeSelf(event.target.checked));
 byId('graph-neighbors').addEventListener('change', render);
 document.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
   const field = button.dataset.sort;
-  state.ascending = state.sort === field ? !state.ascending : field === 'path'; state.sort = field; render();
+  state.ascending = state.sort === field ? !state.ascending : field === 'path'; state.sort = field; renderHotspots();
 }));
 byId('export-json').addEventListener('click', () => download('unknot-report.json', JSON.stringify(state.report, null, 2) + '\n', 'application/json'));
 byId('export-summary').addEventListener('click', () => {

@@ -94,6 +94,7 @@ try {
     [$assetStatus, $assetHeaders] = $request('/assets/vendor/cytoscape.esm.min.mjs');
     checkWeb($assetStatus === 200 && str_contains(strtolower($assetHeaders), 'content-type: text/javascript'), 'Bundled graph library must be served locally as JavaScript.');
     checkWeb($request('/assets/graph-model.js')[0] === 200, 'Graph model must be available locally.');
+    checkWeb($request('/assets/search.js')[0] === 200, 'Declaration search must be available locally.');
     checkWeb($request('/assets/graph-layout.js')[0] === 200, 'Graph layouts must be available locally.');
     checkWeb($request('/assets/graph-selection.js')[0] === 200, 'Graph selection logic must be available locally.');
     [$logoStatus, $logoHeaders] = $request('/assets/unknot-mark.svg');

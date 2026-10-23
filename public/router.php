@@ -36,6 +36,7 @@ $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css
     '/assets/unknot-mark.svg' => ['assets/unknot-mark.svg', 'image/svg+xml'],
     '/assets/app.js' => ['assets/app.js', 'text/javascript; charset=utf-8'],
     '/assets/report.js' => ['assets/report.js', 'text/javascript; charset=utf-8'],
+    '/assets/search.js' => ['assets/search.js', 'text/javascript; charset=utf-8'],
     '/assets/graph.js' => ['assets/graph.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-model.js' => ['assets/graph-model.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-layout.js' => ['assets/graph-layout.js', 'text/javascript; charset=utf-8'],

@@ -250,6 +250,7 @@ h3 {
   font-size:11px;
   font-weight:650;
 }
+.search-scope { margin:-8px 0 16px; font-size:11px; }
 input[type=search],select {
   display:block;
   width:100%;
@@ -382,6 +383,10 @@ input[type=search],select {
   white-space:nowrap;
   font-family:system-ui,sans-serif;
 }
+.file-label { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.search-match { color:#b4c8c0; font-size:11px; }
+.details-back { margin-top:18px; }
+.reference-candidates { margin:4px 0 0; }
 .details {
   min-height:420px;
 }

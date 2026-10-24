@@ -189,6 +189,8 @@ h3 {
   color:var(--ink);
   border:1px solid #465460;
 }
+#source-check-choose:not([hidden]) { display:inline-block; cursor:pointer; }
+#source-check-choose:focus-within { outline:3px solid #6ef2c5; outline-offset:3px; }
 .stats {
   display:grid;
   grid-template-columns:repeat(4,1fr);

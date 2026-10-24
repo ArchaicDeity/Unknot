@@ -40,6 +40,7 @@ $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css
     '/assets/app.js' => ['assets/app.js', 'text/javascript; charset=utf-8'],
     '/assets/report.js' => ['assets/report.js', 'text/javascript; charset=utf-8'],
     '/assets/search.js' => ['assets/search.js', 'text/javascript; charset=utf-8'],
+    '/assets/source-check.js' => ['assets/source-check.js', 'text/javascript; charset=utf-8'],
     '/assets/overview.js' => ['assets/overview.js', 'text/javascript; charset=utf-8'],
     '/assets/overview-model.js' => ['assets/overview-model.js', 'text/javascript; charset=utf-8'],
     '/assets/impact.js' => ['assets/impact.js', 'text/javascript; charset=utf-8'],

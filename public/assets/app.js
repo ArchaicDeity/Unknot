@@ -4,6 +4,7 @@ import { expandNeighborhood } from './graph-model.js';
 import { inDirectory } from './overview-model.js';
 import { createOverviewController } from './overview.js';
 import { createImpactController } from './impact.js';
+import { createSourceCheckController } from './source-check.js';
 
 const byId = id => document.getElementById(id);
 const state = { report: null, searchIndex: [], directory: null, selected: null, selectedEdge: null, history: [], exploration: null, explorationMessage: '', sort: 'score', ascending: false, loadSequence: 0 };
@@ -16,6 +17,7 @@ const node = (tag, text, className) => {
 };
 let graphController = null;
 let graphUnavailable = false;
+const sourceCheck = createSourceCheckController({ input: byId('source-check-file'), choose: byId('source-check-choose'), status: byId('source-check-status') });
 const impact = createImpactController({ type: byId('impact-type'), inferred: byId('impact-inferred'), status: byId('impact-status'), results: byId('impact-results') }, selectFile);
 const overview = createOverviewController({
   scope: byId('overview-scope'), all: byId('directory-all'), directories: byId('directory-list'),
@@ -197,6 +199,7 @@ function render() {
     byId('graph-status').textContent = 'Preparing the dependency map…';
   }
   details(report, filteredEdges);
+  sourceCheck.update(report, report.nodes.find(file => file.id === state.selected) || null);
   impact.setSelection(state.selected);
 }
 

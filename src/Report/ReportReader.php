@@ -40,7 +40,7 @@ final class ReportReader
 
     public function validate($report): void
     {
-        if (!is_array($report) || !in_array($report['schemaVersion'] ?? null, [0, 1], true) || !is_array($report['scan'] ?? null)
+        if (!is_array($report) || !in_array($report['schemaVersion'] ?? null, [0, 1, 2], true) || !is_array($report['scan'] ?? null)
             || !$this->text($report['scan']['rootLabel'] ?? null) || !is_array($report['nodes'] ?? null)
             || !array_is_list($report['nodes']) || count($report['nodes']) > 10000
             || !is_array($report['edges'] ?? null) || !array_is_list($report['edges']) || count($report['edges']) > 100000
@@ -69,7 +69,7 @@ final class ReportReader
                     $owners[$declaration['kind'] . "\0" . $declaration['name'] . "\0" . $declaration['line']] = true;
                 }
             }
-            if ($report['schemaVersion'] === 1) {
+            if ($report['schemaVersion'] >= 1) {
                 if (!is_array($node['methods'] ?? null) || !array_is_list($node['methods'])
                     || count($node['methods']) > 100000 || ($node['parseState'] !== 'clean' && $node['methods'] !== [])) {
                     throw new RuntimeException('Malformed method declarations.');
@@ -86,6 +86,12 @@ final class ReportReader
                         throw new RuntimeException('Malformed method declaration.');
                     }
                 }
+            }
+            if ($report['schemaVersion'] === 2 && (!array_key_exists('sourceSha256', $node)
+                || ($node['parseState'] === 'clean'
+                    ? !is_string($node['sourceSha256']) || preg_match('/\A[0-9a-f]{64}\z/', $node['sourceSha256']) !== 1
+                    : $node['sourceSha256'] !== null))) {
+                throw new RuntimeException('Malformed source fingerprint.');
             }
             $ids[$node['id']] = true;
         }

@@ -18,6 +18,7 @@
             "@php tests/source-special-file.php",
             "@php tests/source-concurrency.php",
             "@php tests/source-worker.php",
+            "@php tests/source-fingerprints.php",
             "@php tests/symbol-kinds.php",
             "@php tests/class-context.php",
             "@php tests/syntax-cases.php",

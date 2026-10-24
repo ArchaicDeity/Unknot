@@ -24,6 +24,21 @@ modern.nodes[0].declarations = [{ name: 'App\\Service', kind: 'class', line: 1 }
 modern.nodes[0].methods = [{ owner: 'App\\Service', ownerKind: 'class', ownerLine: 1, name: 'run', line: 2, visibility: 'public', static: false }];
 modern.nodes[1].methods = [];
 assert.equal(validateReport(modern), modern);
+const fingerprinted = structuredClone(modern);
+fingerprinted.schemaVersion = 2;
+fingerprinted.nodes[0].sourceSha256 = 'a'.repeat(64);
+fingerprinted.nodes[1].parseState = 'skipped';
+fingerprinted.nodes[1].sourceSha256 = null;
+assert.equal(validateReport(fingerprinted), fingerprinted);
+for (const value of [undefined, null, 'A'.repeat(64), 'a'.repeat(64) + '\n', 'a'.repeat(63)]) {
+  const invalid = structuredClone(fingerprinted);
+  if (value === undefined) delete invalid.nodes[0].sourceSha256;
+  else invalid.nodes[0].sourceSha256 = value;
+  assert.throws(() => validateReport(invalid), /Malformed source fingerprint/);
+}
+const fingerprintOnSkipped = structuredClone(fingerprinted);
+fingerprintOnSkipped.nodes[1].sourceSha256 = 'a'.repeat(64);
+assert.throws(() => validateReport(fingerprintOnSkipped), /Malformed source fingerprint/);
 const invalidMethod = structuredClone(modern);
 invalidMethod.nodes[0].methods[0].owner = 'App\\Other';
 assert.throws(() => validateReport(invalidMethod), /Malformed method/);

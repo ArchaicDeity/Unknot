@@ -236,7 +236,7 @@ function setReport(report, isDemo = false) {
   byId('search-scope').textContent = report.schemaVersion === 0
     ? 'This older report does not index method declarations. Rescan to search methods. Method calls and runtime uses are not indexed.'
     : 'Searches paths and reported declarations, including methods on named types. Method calls and runtime uses are not indexed.';
-  state.searchIndex = buildSearchIndex(report.nodes, report.schemaVersion === 1);
+  state.searchIndex = buildSearchIndex(report.nodes, report.schemaVersion >= 1);
   state.directory = null;
   overview.setReport(report);
   byId('demo-context').hidden = !isDemo;

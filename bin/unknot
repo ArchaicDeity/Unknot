@@ -46,17 +46,20 @@ if (in_array($arguments[0] ?? '', ['serve', 'demo'], true)) {
 if (count($arguments) < 2 || $arguments[0] !== 'scan') {
     fwrite(STDERR, "Usage: php bin/unknot demo [--port=8765]\n"
         . "       php bin/unknot serve --report=<report.json> [--port=8765]\n"
-        . "       php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>]\n");
+        . "       php bin/unknot scan <directory> --output=<report.json> [--exclude=<path>] [--source-fingerprints]\n");
     exit(1);
 }
 $root = $arguments[1];
 $output = null;
 $exclusions = [];
+$sourceFingerprints = false;
 foreach (array_slice($arguments, 2) as $argument) {
     if (str_starts_with($argument, '--output=')) {
         $output = substr($argument, strlen('--output='));
     } elseif (str_starts_with($argument, '--exclude=')) {
         $exclusions[] = substr($argument, strlen('--exclude='));
+    } elseif ($argument === '--source-fingerprints') {
+        $sourceFingerprints = true;
     } else {
         fwrite(STDERR, "Unknown option.\n");
         exit(1);
@@ -69,7 +72,7 @@ if ($output === null || $output === '') {
 
 try {
     $scanner = new Scanner(new FileDiscovery(), new IsolatedExtractor());
-    $report = $scanner->scan($root, $exclusions);
+    $report = $scanner->scan($root, $exclusions, $sourceFingerprints);
     (new JsonWriter())->write($report, $output, $root);
     $count = count($report['scan']['warnings']);
     fwrite(STDOUT, sprintf("Scanned %d files; %d warnings.\n", $report['scan']['fileCount'], $count));

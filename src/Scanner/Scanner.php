@@ -19,7 +19,7 @@ final class Scanner
         }
     }
 
-    public function scan(string $root, array $exclusions = []): array
+    public function scan(string $root, array $exclusions = [], bool $sourceFingerprints = false): array
     {
         $normalizedRoot = str_replace('\\', '/', $root);
         if (str_starts_with($normalizedRoot, '//') || preg_match('/^[a-z][a-z0-9+.-]*:\/\//i', $normalizedRoot)) {
@@ -57,8 +57,15 @@ final class Scanner
                     throw new RuntimeException('The scan exceeds the method declaration limit.');
                 }
             }
-            $nodes[] = ['id' => $id, 'path' => $relative, 'kind' => 'file', 'parseState' => $result['state'],
+            $node = ['id' => $id, 'path' => $relative, 'kind' => 'file', 'parseState' => $result['state'],
                 'declarations' => $result['declarations'], 'methods' => $fileMethods];
+            if ($sourceFingerprints) {
+                if ($result['state'] === 'clean' && !isset($result['sourceSha256'])) {
+                    throw new RuntimeException('A clean source file has no validated fingerprint.');
+                }
+                $node['sourceSha256'] = $result['state'] === 'clean' ? $result['sourceSha256'] : null;
+            }
+            $nodes[] = $node;
             if ($result['state'] !== 'clean') {
                 $warnings[] = ['fileId' => $id, 'code' => $result['reason'] ?? 'parse-error', 'line' => $result['line'] ?? null];
                 if (count($warnings) > 5000) {
@@ -101,6 +108,6 @@ final class Scanner
         }
 
         usort($warnings, static fn (array $a, array $b): int => [$a['fileId'], $a['line'] ?? 0, $a['code']] <=> [$b['fileId'], $b['line'] ?? 0, $b['code']]);
-        return ['schemaVersion' => 1, 'scan' => ['rootLabel' => basename($root), 'fileCount' => count($nodes), 'warnings' => $warnings], 'nodes' => $nodes, 'edges' => $edges, 'findings' => $findings];
+        return ['schemaVersion' => $sourceFingerprints ? 2 : 1, 'scan' => ['rootLabel' => basename($root), 'fileCount' => count($nodes), 'warnings' => $warnings], 'nodes' => $nodes, 'edges' => $edges, 'findings' => $findings];
     }
 }

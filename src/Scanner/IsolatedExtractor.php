@@ -179,6 +179,8 @@ final class IsolatedExtractor
             $result = (new WorkerResponse())->decode($resultJson, strlen($resultJson), $source);
             if ($result === null) return null;
             $result['sourceBytes'] = strlen($source);
+            // Bind future provenance to the exact bytes whose parser locations were validated.
+            $result['sourceSha256'] = hash('sha256', $source);
             return $result;
         } catch (\JsonException $error) {
             return null;

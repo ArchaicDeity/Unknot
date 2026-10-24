@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-function runScanner(string $root, string $output): array
+function runScanner(string $root, string $output, array $options = []): array
 {
-    $command = [PHP_BINARY, dirname(__DIR__) . '/bin/unknot', 'scan', $root, '--output=' . $output];
+    $command = [PHP_BINARY, dirname(__DIR__) . '/bin/unknot', 'scan', $root, '--output=' . $output, ...$options];
     $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
     $process = proc_open($command, $descriptors, $pipes, null, null, ['bypass_shell' => true]);
     if (!is_resource($process)) {
@@ -25,6 +25,7 @@ $bad = $root . '/Bad.php';
 $canary = $root . '/EXECUTED';
 $previous = $scratch . '/previous.json';
 $partial = $scratch . '/partial.json';
+$fingerprinted = $scratch . '/fingerprinted.json';
 if (!mkdir($scratch) || !mkdir($root)) {
     throw new RuntimeException('Could not create the CLI test directory.');
 }
@@ -48,9 +49,17 @@ try {
     if (($report['scan']['fileCount'] ?? null) !== 2 || count($warnings) !== 1 || file_exists($canary)) {
         throw new RuntimeException('The CLI must report the bad file without executing the target.');
     }
+    $fingerprintResult = runScanner($root, $fingerprinted, ['--source-fingerprints']);
+    $fingerprintReport = json_decode((string) file_get_contents($fingerprinted), true, 64, JSON_THROW_ON_ERROR);
+    $nodes = array_column($fingerprintReport['nodes'], null, 'path');
+    if ($fingerprintResult['exit'] !== 2 || $fingerprintReport['schemaVersion'] !== 2
+        || $nodes['Good.php']['sourceSha256'] !== hash_file('sha256', $good)
+        || $nodes['Bad.php']['sourceSha256'] !== null || file_exists($canary)) {
+        throw new RuntimeException('Fingerprint opt-in must record the correct scan bytes without executing the target.');
+    }
     echo "CLI checks passed.\n";
 } finally {
-    foreach ([$good, $bad, $canary, $previous, $partial] as $file) {
+    foreach ([$good, $bad, $canary, $previous, $partial, $fingerprinted] as $file) {
         if (is_file($file)) {
             unlink($file);
         }

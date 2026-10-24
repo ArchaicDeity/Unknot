@@ -98,6 +98,7 @@ try {
     checkWeb($request('/assets/graph-model.js')[0] === 200, 'Graph model must be available locally.');
     checkWeb($request('/assets/search.js')[0] === 200, 'Declaration search must be available locally.');
     checkWeb($request('/assets/overview.js')[0] === 200 && $request('/assets/overview-model.js')[0] === 200, 'Report overview must be available locally.');
+    checkWeb($request('/assets/impact.js')[0] === 200 && $request('/assets/impact-model.js')[0] === 200, 'Impact analysis must be available locally.');
     checkWeb($request('/assets/graph-layout.js')[0] === 200, 'Graph layouts must be available locally.');
     checkWeb($request('/assets/graph-selection.js')[0] === 200, 'Graph selection logic must be available locally.');
     [$logoStatus, $logoHeaders] = $request('/assets/unknot-mark.svg');

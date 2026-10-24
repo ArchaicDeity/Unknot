@@ -3,6 +3,7 @@ import { buildSearchIndex, searchFiles, fileMatchesQuery, visibleMethods } from 
 import { expandNeighborhood } from './graph-model.js';
 import { inDirectory } from './overview-model.js';
 import { createOverviewController } from './overview.js';
+import { createImpactController } from './impact.js';
 
 const byId = id => document.getElementById(id);
 const state = { report: null, searchIndex: [], directory: null, selected: null, selectedEdge: null, history: [], exploration: null, explorationMessage: '', sort: 'score', ascending: false, loadSequence: 0 };
@@ -15,6 +16,7 @@ const node = (tag, text, className) => {
 };
 let graphController = null;
 let graphUnavailable = false;
+const impact = createImpactController({ type: byId('impact-type'), inferred: byId('impact-inferred'), status: byId('impact-status'), results: byId('impact-results') }, selectFile);
 const overview = createOverviewController({
   scope: byId('overview-scope'), all: byId('directory-all'), directories: byId('directory-list'),
   more: byId('directory-more'), filterStatus: byId('directory-status'), reasons: byId('overview-reasons'),
@@ -195,6 +197,7 @@ function render() {
     byId('graph-status').textContent = 'Preparing the dependency map…';
   }
   details(report, filteredEdges);
+  impact.setSelection(state.selected);
 }
 
 function renderHotspots() {
@@ -229,6 +232,7 @@ function renderReportSummary(report) {
 
 function setReport(report, isDemo = false) {
   state.report = validateReport(report);
+  impact.setReport(report);
   byId('search-scope').textContent = report.schemaVersion === 0
     ? 'This older report does not index method declarations. Rescan to search methods. Method calls and runtime uses are not indexed.'
     : 'Searches paths and reported declarations, including methods on named types. Method calls and runtime uses are not indexed.';

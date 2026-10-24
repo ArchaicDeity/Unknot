@@ -3,7 +3,7 @@
   "private": true,
   "description": "Development tools for Unknot's locally served graph assets.",
   "scripts": {
-    "test": "node tests/legacy-viewer.js && node tests/browser-model.mjs && node tests/search-model.mjs && node tests/overview-model.mjs && node tests/graph-model.mjs",
+    "test": "node tests/legacy-viewer.js && node tests/browser-model.mjs && node tests/search-model.mjs && node tests/overview-model.mjs && node tests/graph-model.mjs && node tests/impact-model.mjs",
     "vendor:graph": "node scripts/vendor-graph.mjs",
     "verify:vendor": "node scripts/verify-graph-vendor.mjs"
   },

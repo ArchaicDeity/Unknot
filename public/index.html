@@ -73,6 +73,14 @@
         </section>
         <aside class="panel details" aria-labelledby="details-title"><div class="panel-head"><div><p class="eyebrow">INSPECT</p><h2 id="details-title">File details</h2></div><span class="chip">EVIDENCE</span></div><button id="details-back" class="button subtle details-back" type="button" disabled>Back to previous file</button><div id="details"><p class="empty">Select a file to see its declarations and connections.</p></div></aside>
       </div>
+      <section class="panel impact" aria-labelledby="impact-title">
+        <div class="panel-head"><div><p class="eyebrow">FOLLOW THE EVIDENCE</p><h2 id="impact-title">Possible dependents</h2></div><span class="chip">FILE LEVEL</span></div>
+        <p class="muted">Follow reported incoming references to the selected file. Each result shows one shortest path, not every path or a prediction of what will break. Select a file in a path to inspect it.</p>
+        <div class="impact-controls"><label>Reference type <select id="impact-type"><option value="all">All types</option></select></label><label><input id="impact-inferred" type="checkbox"> Include inferred references</label></div>
+        <p id="impact-status" role="status" aria-live="polite">Select a file to inspect reported dependents.</p>
+        <p class="muted">Unresolved references, skipped or failed files, dynamic behavior and code outside this scan may hide dependents. Method calls and runtime effects are not established.</p>
+        <div id="impact-results"></div>
+      </section>
       <section class="panel hotspots" aria-labelledby="hotspots-title"><div class="panel-head"><div><p class="eyebrow">WHERE TO LOOK</p><h2 id="hotspots-title">Hotspots</h2><p class="muted">A navigation aid, not a risk score. Score = 2 × inbound + outbound + 3 × query indicators.</p></div></div><div class="table-scroll"><table><thead><tr><th><button data-sort="path">File</button></th><th><button data-sort="inbound">Inbound</button></th><th><button data-sort="outbound">Outbound</button></th><th><button data-sort="database">DB queries</button></th><th><button data-sort="score">Score</button></th></tr></thead><tbody id="hotspots"></tbody></table></div></section>
       <section class="panel diagnostics" aria-labelledby="warnings-title"><div class="panel-head"><div><p class="eyebrow">WHAT WE COULDN'T RESOLVE</p><h2 id="warnings-title">Diagnostics</h2></div><span id="warning-count" class="chip"></span></div><ul id="warnings"></ul></section>
     </section>

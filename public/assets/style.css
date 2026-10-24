@@ -488,6 +488,13 @@ td:first-child {
 .diagnostics ul {
   margin-top:15px;
 }
+.impact { margin-top:20px; }
+.impact-controls { display:flex; flex-wrap:wrap; align-items:end; gap:16px; margin:16px 0; }
+.impact-controls label { display:flex; align-items:center; gap:8px; }
+.impact-list { padding-left:24px; }
+.impact-list > li { padding:8px 0; border-top:1px solid var(--line); overflow-wrap:anywhere; }
+.impact-heading { margin:0 0 6px; }
+.impact-path { padding-left:22px; color:#a5b0b9; }
 footer {
   color:#a5b0b9;
   padding:30px 0 45px;

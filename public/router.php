@@ -42,6 +42,8 @@ $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css
     '/assets/search.js' => ['assets/search.js', 'text/javascript; charset=utf-8'],
     '/assets/overview.js' => ['assets/overview.js', 'text/javascript; charset=utf-8'],
     '/assets/overview-model.js' => ['assets/overview-model.js', 'text/javascript; charset=utf-8'],
+    '/assets/impact.js' => ['assets/impact.js', 'text/javascript; charset=utf-8'],
+    '/assets/impact-model.js' => ['assets/impact-model.js', 'text/javascript; charset=utf-8'],
     '/assets/graph.js' => ['assets/graph.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-model.js' => ['assets/graph-model.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-layout.js' => ['assets/graph-layout.js', 'text/javascript; charset=utf-8'],

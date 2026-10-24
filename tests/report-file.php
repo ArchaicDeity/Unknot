@@ -24,6 +24,18 @@ try {
     if (count(glob($scratch . '/.unknot-*')) !== 0) {
         throw new RuntimeException('A successful report must not leave a temporary file.');
     }
+    $original = file_get_contents($output);
+    $tooLarge = $report;
+    $tooLarge['padding'] = str_repeat('x', 16777216);
+    $rejected = false;
+    try {
+        (new JsonWriter())->write($tooLarge, $output, dirname(__DIR__) . '/fixtures/sample-legacy-app');
+    } catch (RuntimeException $error) {
+        $rejected = str_contains($error->getMessage(), '16 MiB');
+    }
+    if (!$rejected || file_get_contents($output) !== $original || count(glob($scratch . '/.unknot-*')) !== 0) {
+        throw new RuntimeException('An oversized report must be rejected without replacing the existing file.');
+    }
     echo "Report file checks passed.\n";
 } finally {
     umask($previousMask);

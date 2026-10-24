@@ -1,5 +1,5 @@
 import { readReportFile, validateReport, hotspots } from './report.js';
-import { buildSearchIndex, searchFiles, fileMatchesQuery } from './search.js';
+import { buildSearchIndex, searchFiles, fileMatchesQuery, visibleMethods } from './search.js';
 import { expandNeighborhood } from './graph-model.js';
 import { inDirectory } from './overview-model.js';
 import { createOverviewController } from './overview.js';
@@ -124,6 +124,17 @@ function details(report, filteredEdges) {
   const path = node('p', file.path, 'detail-path'); path.tabIndex = -1; container.appendChild(path);
   container.appendChild(node('p', 'Parse state: ' + file.parseState, 'muted'));
   container.appendChild(section('Declarations', file.declarations.map(item => item.kind + ' ' + item.name + ' · line ' + item.line)));
+  if (report.schemaVersion === 0) {
+    container.appendChild(section('Method declarations', ['Unavailable in this older report. Rescan to index methods.']));
+  } else if (file.parseState !== 'clean') {
+    container.appendChild(section('Method declarations', ['Unavailable because this file did not parse cleanly.']));
+  } else {
+    const shown = visibleMethods(file.methods, byId('search').value);
+    const methods = section('Method declarations', shown.map(item => item.owner + '::' + item.name + ' · ' + item.visibility +
+      (item.static ? ' static' : ' instance') + ' · line ' + item.line));
+    if (file.methods.length > shown.length) methods.appendChild(node('p', 'Showing ' + shown.length + ' of ' + file.methods.length + ' methods. Search for a name to bring its matches first.', 'muted'));
+    container.appendChild(methods);
+  }
   const outgoing = filteredEdges.filter(edge => edge.from === file.id).map(edge => ({
     selected: edge.id === state.selectedEdge,
     prefix: (edge.id === state.selectedEdge ? 'Selected: ' : '') + edge.type + ' · line ' + edge.line + ' · ' + labelConfidence(edge.confidence) + ' · ',
@@ -168,6 +179,7 @@ function render() {
     button.type = 'button'; button.dataset.fileId = file.id; button.setAttribute('aria-pressed', String(file.id === state.selected));
     const label = node('span', undefined, 'file-label'); label.appendChild(node('span', file.path));
     for (const declaration of result.declarations) label.appendChild(node('span', declaration.kind + ' ' + declaration.name + ' · line ' + declaration.line, 'search-match'));
+    for (const method of result.methods) label.appendChild(node('span', 'method ' + method.owner + '::' + method.name + ' · ' + method.visibility + (method.static ? ' static' : ' instance') + ' · line ' + method.line, 'search-match'));
     if (result.extra) label.appendChild(node('span', result.extra + ' more matching declarations', 'search-match'));
     button.appendChild(label); button.appendChild(node('small', file.parseState));
     button.addEventListener('click', () => selectFile(file.id)); fileList.appendChild(button);
@@ -217,7 +229,10 @@ function renderReportSummary(report) {
 
 function setReport(report, isDemo = false) {
   state.report = validateReport(report);
-  state.searchIndex = buildSearchIndex(report.nodes);
+  byId('search-scope').textContent = report.schemaVersion === 0
+    ? 'This older report does not index method declarations. Rescan to search methods. Method calls and runtime uses are not indexed.'
+    : 'Searches paths and reported declarations, including methods on named types. Method calls and runtime uses are not indexed.';
+  state.searchIndex = buildSearchIndex(report.nodes, report.schemaVersion === 1);
   state.directory = null;
   overview.setReport(report);
   byId('demo-context').hidden = !isDemo;

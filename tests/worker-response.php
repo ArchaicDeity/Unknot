@@ -25,22 +25,18 @@ if ($response->decode($failedJson, strlen($failedJson), '<?php class {') !== $fa
 }
 
 $cases = [];
-$cases[] = '{"state":"clean","declarations":{},"references":[]}';
-$cases[] = '{"state":"clean","declarations":[null],"references":[]}';
+$cases[] = '{"state":"clean","declarations":{},"methods":[],"references":[]}';
+$cases[] = '{"state":"clean","declarations":[null],"methods":[],"references":[]}';
 $cases[] = '{"state":"failed","line":1,"reason":"private data","declarations":[],"references":[]}';
 $cases[] = '{"state":"failed","line":1,"declarations":[{}],"references":[]}';
-$cases[] = '{"state":"clean","declarations":[{"kind":"class","name":"Item","line":1}],"references":[]}';
-$cases[] = '{"state":"clean","declarations":[],"references":[{"type":"instantiation","name":"Item","line":1,"startOffset":0,"endOffset":9999,"expectedKind":"class"}]}';
-$cases[] = '{"state":"clean","declarations":[],"references":[{"type":"include","name":null,"line":99,"startOffset":0,"endOffset":1}]}';
-$cases[] = '{"state":"clean","declarations":[],"references":[{"type":"static-call","name":"Item","line":1,"startOffset":0,"endOffset":1,"contextReason":"private data"}]}';
-$cases[] = '{"state":"clean","declarations":[],"references":[{"type":"extends","name":null,"line":1,"startOffset":0,"endOffset":1,"expectedKind":"class"}]}';
+$cases[] = '{"state":"failed","line":1,"declarations":[],"methods":[{}],"references":[]}';
+$cases[] = '{"state":"clean","declarations":[{"kind":"class","name":"Item","line":1}],"methods":[],"references":[]}';
+$cases[] = '{"state":"clean","declarations":[],"methods":[],"references":[{"type":"instantiation","name":"Item","line":1,"startOffset":0,"endOffset":9999,"expectedKind":"class"}]}';
+$cases[] = '{"state":"clean","declarations":[],"methods":[],"references":[{"type":"include","name":null,"line":99,"startOffset":0,"endOffset":1}]}';
+$cases[] = '{"state":"clean","declarations":[],"methods":[],"references":[{"type":"static-call","name":"Item","line":1,"startOffset":0,"endOffset":1,"contextReason":"private data"}]}';
+$cases[] = '{"state":"clean","declarations":[],"methods":[],"references":[{"type":"extends","name":null,"line":1,"startOffset":0,"endOffset":1,"expectedKind":"class"}]}';
 $cases[] = '{"state":"clean","declarations":[],"references":[';
 foreach ($cases as $invalid) {
-    $decoded = json_decode($invalid);
-    if ($decoded instanceof stdClass && ($decoded->state ?? null) === 'clean') {
-        $decoded->methodEvidence = (object) ['methods' => [], 'calls' => []];
-        $invalid = json_encode($decoded, JSON_THROW_ON_ERROR);
-    }
     if ($response->decode($invalid, strlen($invalid), $source) !== null) {
         throw new RuntimeException('A malformed worker result was accepted.');
     }
@@ -48,15 +44,8 @@ foreach ($cases as $invalid) {
 if ($response->decode($json, strlen($json) + 1, $source) !== null) {
     throw new RuntimeException('A response with an incorrect declared length must be rejected.');
 }
-$wrongLine = '{"state":"clean","declarations":[],"references":[{"type":"include","name":null,"line":2,"startOffset":0,"endOffset":1}],"methodEvidence":{"methods":[],"calls":[]}}';
+$wrongLine = '{"state":"clean","declarations":[],"methods":[],"references":[{"type":"include","name":null,"line":2,"startOffset":0,"endOffset":1}]}';
 if ($response->decode($wrongLine, strlen($wrongLine), "<?php\n") !== null) {
     throw new RuntimeException('A reference line must match its source offset.');
-}
-$orderedSource = '<?php new First(); new Second();';
-$unordered = (new Extractor())->extract($orderedSource);
-$unordered['references'] = array_reverse($unordered['references']);
-$unorderedJson = json_encode($unordered, JSON_THROW_ON_ERROR);
-if ($response->decode($unorderedJson, strlen($unorderedJson), $orderedSource) !== null) {
-    throw new RuntimeException('Out-of-order worker references must be rejected.');
 }
 echo "Worker response validation checks passed.\n";

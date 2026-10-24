@@ -40,7 +40,7 @@ final class ReportReader
 
     public function validate($report): void
     {
-        if (!is_array($report) || ($report['schemaVersion'] ?? null) !== 0 || !is_array($report['scan'] ?? null)
+        if (!is_array($report) || !in_array($report['schemaVersion'] ?? null, [0, 1], true) || !is_array($report['scan'] ?? null)
             || !$this->text($report['scan']['rootLabel'] ?? null) || !is_array($report['nodes'] ?? null)
             || !array_is_list($report['nodes']) || count($report['nodes']) > 10000
             || !is_array($report['edges'] ?? null) || !array_is_list($report['edges']) || count($report['edges']) > 100000
@@ -49,6 +49,7 @@ final class ReportReader
             throw new RuntimeException('Unsupported or malformed report.');
         }
         $ids = [];
+        $methodCount = 0;
         foreach ($report['nodes'] as $node) {
             if (!is_array($node) || !$this->text($node['path'] ?? null) || ($node['id'] ?? null) !== 'file:' . $node['path']
                 || isset($ids[$node['id']]) || ($node['kind'] ?? null) !== 'file'
@@ -57,11 +58,33 @@ final class ReportReader
                 || count($node['declarations']) > 100000) {
                 throw new RuntimeException('Malformed file entry.');
             }
+            $owners = [];
             foreach ($node['declarations'] as $declaration) {
                 if (!is_array($declaration) || !$this->text($declaration['name'] ?? null)
                     || !in_array($declaration['kind'] ?? null, ['class', 'interface', 'trait', 'enum', 'function'], true)
                     || !$this->line($declaration['line'] ?? null)) {
                     throw new RuntimeException('Malformed declaration.');
+                }
+                if ($declaration['kind'] !== 'function') {
+                    $owners[$declaration['kind'] . "\0" . $declaration['name'] . "\0" . $declaration['line']] = true;
+                }
+            }
+            if ($report['schemaVersion'] === 1) {
+                if (!is_array($node['methods'] ?? null) || !array_is_list($node['methods'])
+                    || count($node['methods']) > 100000 || ($node['parseState'] !== 'clean' && $node['methods'] !== [])) {
+                    throw new RuntimeException('Malformed method declarations.');
+                }
+                foreach ($node['methods'] as $method) {
+                    if (!is_array($method) || !$this->text($method['owner'] ?? null)
+                        || !in_array($method['ownerKind'] ?? null, ['class', 'interface', 'trait', 'enum'], true)
+                        || !$this->line($method['ownerLine'] ?? null)
+                        || !isset($owners[$method['ownerKind'] . "\0" . $method['owner'] . "\0" . $method['ownerLine']])
+                        || !$this->text($method['name'] ?? null) || !$this->line($method['line'] ?? null)
+                        || $method['ownerLine'] > $method['line']
+                        || !in_array($method['visibility'] ?? null, ['public', 'protected', 'private'], true)
+                        || !is_bool($method['static'] ?? null) || ++$methodCount > 100000) {
+                        throw new RuntimeException('Malformed method declaration.');
+                    }
                 }
             }
             $ids[$node['id']] = true;

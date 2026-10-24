@@ -8,7 +8,7 @@ export async function readReportFile(file) {
 }
 
 export function validateReport(report) {
-  if (!report || report.schemaVersion !== 0 || !report.scan || !text(report.scan.rootLabel) ||
+  if (!report || ![0, 1].includes(report.schemaVersion) || !report.scan || !text(report.scan.rootLabel) ||
       !Array.isArray(report.scan.warnings) || report.scan.warnings.length > 5000 ||
       !Array.isArray(report.nodes) || report.nodes.length > 10000 || report.scan.fileCount !== report.nodes.length ||
       !Array.isArray(report.edges) || report.edges.length > 100000 ||
@@ -16,11 +16,22 @@ export function validateReport(report) {
     throw new Error('Unsupported or malformed report.');
   }
   const ids = new Set();
+  let methodCount = 0;
   for (const node of report.nodes) {
     if (!node || !text(node.path) || node.id !== 'file:' + node.path || ids.has(node.id) || node.kind !== 'file' ||
         !['clean', 'failed', 'skipped'].includes(node.parseState) || !Array.isArray(node.declarations) || node.declarations.length > 100000) throw new Error('Malformed file entry.');
+    const owners = new Set();
     for (const declaration of node.declarations) {
       if (!declaration || !text(declaration.name) || !['class', 'interface', 'trait', 'enum', 'function'].includes(declaration.kind) || !line(declaration.line)) throw new Error('Malformed declaration.');
+      if (declaration.kind !== 'function') owners.add(JSON.stringify([declaration.kind, declaration.name, declaration.line]));
+    }
+    if (report.schemaVersion === 1) {
+      if (!Array.isArray(node.methods) || node.methods.length > 100000 || (node.parseState !== 'clean' && node.methods.length)) throw new Error('Malformed method declarations.');
+      for (const method of node.methods) {
+        if (!method || !text(method.owner) || !['class', 'interface', 'trait', 'enum'].includes(method.ownerKind) || !line(method.ownerLine) ||
+            !owners.has(JSON.stringify([method.ownerKind, method.owner, method.ownerLine])) || !text(method.name) || !line(method.line) || method.ownerLine > method.line ||
+            !['public', 'protected', 'private'].includes(method.visibility) || typeof method.static !== 'boolean' || ++methodCount > 100000) throw new Error('Malformed method declaration.');
+      }
     }
     ids.add(node.id);
   }

@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Unknot — Architecture explorer</title>
+  <link rel="icon" href="/assets/unknot-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/app.js"></script>
 </head>
@@ -42,8 +43,8 @@
       <div class="workspace">
         <section class="panel explorer" aria-labelledby="explorer-title">
           <div class="panel-head"><div><p class="eyebrow">EXPLORE</p><h2 id="explorer-title">Connections</h2></div><span class="chip">FILE LEVEL</span></div>
-          <div class="controls"><label>Search files and declarations <input id="search" type="search" placeholder="Path, class, interface…" autocomplete="off" aria-describedby="search-scope"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
-          <p id="search-scope" class="muted search-scope">Searches file paths and reported declaration names or kinds. Methods and runtime uses are not indexed.</p>
+          <div class="controls"><label>Search files and declarations <input id="search" type="search" placeholder="Path, class, method…" autocomplete="off" aria-describedby="search-scope"></label><label>Reference type <select id="type-filter"><option value="all">All types</option></select></label><label>Confidence <select id="confidence-filter"><option value="all">All confidence levels</option><option value="resolved">Resolved (static)</option><option value="heuristic">Inferred</option><option value="unresolved">Unresolved</option></select></label></div>
+          <p id="search-scope" class="muted search-scope">Searches file paths and reported declarations. Method calls and runtime uses are not indexed.</p>
           <div class="graph-wrap">
             <div class="graph-label"><span>DEPENDENCY MAP</span><span>DRAG TO EXPLORE · SCROLL TO ZOOM</span></div>
             <div class="graph-toolbar" role="group" aria-label="Graph controls">

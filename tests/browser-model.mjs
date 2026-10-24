@@ -18,6 +18,20 @@ const report = {
   findings: [{ id: 'finding:1', fileId: 'file:A.php', api: 'pdo::query', category: 'query', confidence: 'heuristic', line: 5 }],
 };
 assert.equal(validateReport(report), report);
+const modern = structuredClone(report);
+modern.schemaVersion = 1;
+modern.nodes[0].declarations = [{ name: 'App\\Service', kind: 'class', line: 1 }];
+modern.nodes[0].methods = [{ owner: 'App\\Service', ownerKind: 'class', ownerLine: 1, name: 'run', line: 2, visibility: 'public', static: false }];
+modern.nodes[1].methods = [];
+assert.equal(validateReport(modern), modern);
+const invalidMethod = structuredClone(modern);
+invalidMethod.nodes[0].methods[0].owner = 'App\\Other';
+assert.throws(() => validateReport(invalidMethod), /Malformed method/);
+invalidMethod.nodes[0].methods[0].owner = 'App\\Service';
+invalidMethod.nodes[0].methods[0].static = 'yes';
+assert.throws(() => validateReport(invalidMethod), /Malformed method/);
+delete invalidMethod.nodes[0].methods;
+assert.throws(() => validateReport(invalidMethod), /Malformed method/);
 assert.deepEqual(hotspots(report).map(({ path, inbound, outbound, database, score }) => ({ path, inbound, outbound, database, score })), [
   { path: 'A.php', inbound: 0, outbound: 1, database: 1, score: 4 },
   { path: 'B.php', inbound: 1, outbound: 0, database: 0, score: 2 },

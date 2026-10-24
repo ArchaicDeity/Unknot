@@ -36,8 +36,8 @@ final class JsonWriter
             throw new RuntimeException('The previous report was preserved because the scan was incomplete; select a new output path to save the partial report.');
         }
         $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
-        if (strlen($json) > 16 * 1024 * 1024) {
-            throw new RuntimeException('The report exceeds the 16 MiB viewer limit.');
+        if (strlen($json) > 16777216) {
+            throw new RuntimeException('The report exceeds the 16 MiB size limit.');
         }
         $this->writeAtomically($parent, $target, $json, $incomplete);
     }

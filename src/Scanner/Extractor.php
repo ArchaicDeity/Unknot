@@ -33,11 +33,14 @@ final class Extractor
 
         $finder = new NodeFinder();
         $declarations = [];
+        $methods = [];
         $references = [];
+        $methodExtractor = new MethodDeclarations();
         foreach ($finder->findInstanceOf($nodes, Node\Stmt\ClassLike::class) as $node) {
             if ($node->name !== null && isset($node->namespacedName)) {
                 $kind = $node instanceof Node\Stmt\Class_ ? 'class' : ($node instanceof Node\Stmt\Interface_ ? 'interface' : ($node instanceof Node\Stmt\Trait_ ? 'trait' : 'enum'));
                 $declarations[] = ['kind' => $kind, 'name' => $node->namespacedName->toString(), 'line' => $node->getStartLine(), 'conditional' => $this->isConditional($node)];
+                array_push($methods, ...$methodExtractor->extract($node, $kind));
             }
         }
         foreach ($finder->findInstanceOf($nodes, Node\Stmt\Function_::class) as $node) {
@@ -78,9 +81,9 @@ final class Extractor
             }
         }
         usort($references, static fn (array $a, array $b): int => [$a['startOffset'], $a['endOffset'], $a['type']] <=> [$b['startOffset'], $b['endOffset'], $b['type']]);
+        usort($methods, static fn (array $a, array $b): int => $a['startOffset'] <=> $b['startOffset']);
 
-        return ['state' => 'clean', 'declarations' => $declarations, 'references' => $references,
-            'methodEvidence' => (new MethodEvidence())->collect($nodes),
+        return ['state' => 'clean', 'declarations' => $declarations, 'methods' => $methods, 'references' => $references,
             'findings' => (new DatabaseTouchpoints())->extract($nodes)];
     }
 

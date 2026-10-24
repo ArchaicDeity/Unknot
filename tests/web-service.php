@@ -91,10 +91,13 @@ try {
     };
     [$status, $head, $body] = $request('/');
     checkWeb($status === 200 && !str_contains($body, $report['scan']['rootLabel']) && str_contains(strtolower($head), 'content-security-policy:'), 'Public shell must not contain report data and must include CSP.');
+    $styleHash = base64_encode(hash('sha256', '.__________cytoscape_container { position: relative; }', true));
+    checkWeb(str_contains($head, "style-src 'self' 'sha256-{$styleHash}'") && !str_contains(strtolower($head), "'unsafe-inline'"), 'CSP must allow only the fixed graph style and reject arbitrary inline styles.');
     [$assetStatus, $assetHeaders] = $request('/assets/vendor/cytoscape.esm.min.mjs');
     checkWeb($assetStatus === 200 && str_contains(strtolower($assetHeaders), 'content-type: text/javascript'), 'Bundled graph library must be served locally as JavaScript.');
     checkWeb($request('/assets/graph-model.js')[0] === 200, 'Graph model must be available locally.');
     checkWeb($request('/assets/search.js')[0] === 200, 'Declaration search must be available locally.');
+    checkWeb($request('/assets/overview.js')[0] === 200 && $request('/assets/overview-model.js')[0] === 200, 'Report overview must be available locally.');
     checkWeb($request('/assets/graph-layout.js')[0] === 200, 'Graph layouts must be available locally.');
     checkWeb($request('/assets/graph-selection.js')[0] === 200, 'Graph selection logic must be available locally.');
     [$logoStatus, $logoHeaders] = $request('/assets/unknot-mark.svg');

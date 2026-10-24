@@ -10,7 +10,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store');
-header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+// Cytoscape 3.34.4 inserts this fixed rule; allow its exact bytes, not arbitrary inline styles.
+$cytoscapeRule = '.__________cytoscape_container { position: relative; }';
+$cytoscapeRuleHash = base64_encode(hash('sha256', $cytoscapeRule, true));
+header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'sha256-{$cytoscapeRuleHash}'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 
 $port = getenv('UNKNOT_PORT');
 $host = '127.0.0.1:' . $port;
@@ -37,6 +40,8 @@ $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css
     '/assets/app.js' => ['assets/app.js', 'text/javascript; charset=utf-8'],
     '/assets/report.js' => ['assets/report.js', 'text/javascript; charset=utf-8'],
     '/assets/search.js' => ['assets/search.js', 'text/javascript; charset=utf-8'],
+    '/assets/overview.js' => ['assets/overview.js', 'text/javascript; charset=utf-8'],
+    '/assets/overview-model.js' => ['assets/overview-model.js', 'text/javascript; charset=utf-8'],
     '/assets/graph.js' => ['assets/graph.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-model.js' => ['assets/graph-model.js', 'text/javascript; charset=utf-8'],
     '/assets/graph-layout.js' => ['assets/graph-layout.js', 'text/javascript; charset=utf-8'],

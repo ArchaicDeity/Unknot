@@ -1,9 +1,11 @@
 import { readReportFile, validateReport, hotspots } from './report.js';
 import { buildSearchIndex, searchFiles, fileMatchesQuery } from './search.js';
 import { expandNeighborhood } from './graph-model.js';
+import { inDirectory } from './overview-model.js';
+import { createOverviewController } from './overview.js';
 
 const byId = id => document.getElementById(id);
-const state = { report: null, searchIndex: [], selected: null, selectedEdge: null, history: [], exploration: null, explorationMessage: '', sort: 'score', ascending: false, loadSequence: 0 };
+const state = { report: null, searchIndex: [], directory: null, selected: null, selectedEdge: null, history: [], exploration: null, explorationMessage: '', sort: 'score', ascending: false, loadSequence: 0 };
 const message = text => { byId('message').textContent = text; };
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
@@ -13,6 +15,16 @@ const node = (tag, text, className) => {
 };
 let graphController = null;
 let graphUnavailable = false;
+const overview = createOverviewController({
+  scope: byId('overview-scope'), all: byId('directory-all'), directories: byId('directory-list'),
+  more: byId('directory-more'), filterStatus: byId('directory-status'), reasons: byId('overview-reasons'),
+}, directory => {
+  state.directory = directory;
+  state.exploration = null;
+  state.explorationMessage = '';
+  overview.setDirectory(directory);
+  render();
+});
 
 async function prepareGraph() {
   try {
@@ -34,7 +46,7 @@ async function prepareGraph() {
 
 function rememberSelection() {
   if (state.selected === null) return;
-  state.history.push({ fileId: state.selected, edgeId: state.selectedEdge, query: byId('search').value });
+  state.history.push({ fileId: state.selected, edgeId: state.selectedEdge, query: byId('search').value, directory: state.directory });
   if (state.history.length > 100) state.history.shift();
 }
 function selectFile(id, focusDetails = false) {
@@ -44,6 +56,10 @@ function selectFile(id, focusDetails = false) {
   if (state.exploration && !state.exploration.ids.includes(id)) {
     state.exploration = null;
     state.explorationMessage = 'Focused view closed because the selected file was outside it.';
+  }
+  if (!state.exploration && !inDirectory(file.path, state.directory)) {
+    state.directory = null;
+    overview.setDirectory(null);
   }
   const query = byId('search').value.trim().toLowerCase();
   if (focusDetails && !state.exploration && query && !fileMatchesQuery(state.searchIndex, id, query)) {
@@ -58,6 +74,8 @@ function selectReference(id) {
   const edge = state.report.edges.find(item => item.id === id);
   if (!edge) return;
   if (state.selected !== edge.from) rememberSelection();
+  const file = state.report.nodes.find(item => item.id === edge.from);
+  if (!state.exploration && file && !inDirectory(file.path, state.directory)) { state.directory = null; overview.setDirectory(null); }
   state.selected = edge.from;
   state.selectedEdge = edge.id;
   render();
@@ -138,7 +156,8 @@ function render() {
   const query = byId('search').value.trim().toLowerCase();
   const type = byId('type-filter').value, confidence = byId('confidence-filter').value;
   const focusedIds = state.exploration ? new Set(state.exploration.ids) : null;
-  const results = searchFiles(state.searchIndex, focusedIds ? '' : query).filter(result => !focusedIds || focusedIds.has(result.file.id));
+  const results = searchFiles(state.searchIndex, focusedIds ? '' : query)
+    .filter(result => focusedIds ? focusedIds.has(result.file.id) : inDirectory(result.file.path, state.directory));
   const visible = results.map(result => result.file);
   const filteredEdges = report.edges.filter(edge => (type === 'all' || edge.type === type) && (confidence === 'all' || edge.confidence === confidence));
   byId('list-count').textContent = focusedIds ? visible.length + ' in focused view' : visible.length + ' of ' + report.nodes.length;
@@ -155,7 +174,7 @@ function render() {
   }
   if (graphController) {
     graphController.update(visible, filteredEdges, state.selected, state.selectedEdge, {
-      allNodes: report.nodes, includeNeighbors: !focusedIds && query !== '' && byId('graph-neighbors').checked,
+      allNodes: report.nodes, includeNeighbors: !focusedIds && (query !== '' || state.directory !== null) && byId('graph-neighbors').checked,
       focusedExploration: !!focusedIds,
     }).catch(() => {
       byId('graph-status').textContent = 'The graph could not be drawn. The file list and details remain available.';
@@ -199,6 +218,8 @@ function renderReportSummary(report) {
 function setReport(report, isDemo = false) {
   state.report = validateReport(report);
   state.searchIndex = buildSearchIndex(report.nodes);
+  state.directory = null;
+  overview.setReport(report);
   byId('demo-context').hidden = !isDemo;
   state.selected = null;
   state.selectedEdge = null;
@@ -249,6 +270,8 @@ byId('details-back').addEventListener('click', () => {
   const previous = state.history.pop();
   if (!previous) return;
   byId('search').value = previous.query;
+  state.directory = previous.directory;
+  overview.setDirectory(state.directory);
   if (state.exploration && !state.exploration.ids.includes(previous.fileId)) {
     state.exploration = null;
     state.explorationMessage = 'Focused view closed because the previous file was outside it.';

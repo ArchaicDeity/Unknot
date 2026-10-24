@@ -27,6 +27,18 @@
     <section id="dashboard" hidden>
       <div class="report-heading"><div><p class="eyebrow">CURRENT REPORT</p><h2 id="project-name"></h2><p class="muted">Static evidence, with uncertainty left visible.</p></div><div class="actions"><button id="export-json" class="button subtle">Export JSON</button><button id="export-summary" class="button subtle">Export summary</button></div></div>
       <div class="stats" aria-label="Report summary"><div><span>FILES</span><strong id="file-count">0</strong></div><div><span>REFERENCES</span><strong id="edge-count">0</strong></div><div><span>UNRESOLVED</span><strong id="unresolved-count">0</strong></div><div><span>DB INDICATORS</span><strong id="finding-count">0</strong></div></div>
+      <section class="panel overview" aria-labelledby="overview-title">
+        <div class="panel-head"><div><p class="eyebrow">START HERE</p><h2 id="overview-title">Report overview</h2></div><span class="chip">REPORT SCOPE</span></div>
+        <p id="overview-scope" class="muted overview-scope"></p>
+        <div class="overview-grid">
+          <div><h3>Folders in this report</h3><p class="muted">Select a folder to filter the file list. Folder and search filters work together; only reported files are shown.</p>
+            <p id="directory-status" class="muted" role="status"></p>
+            <div class="directory-list" role="group" aria-label="Report folders"><button id="directory-all" type="button" class="directory-button">All report files</button><div id="directory-list"></div></div>
+            <button id="directory-more" type="button" class="button subtle" hidden>Show more folders</button>
+          </div>
+          <div><h3>Why references are unresolved</h3><p class="muted">Counts come from the report. A missing symbol might be outside the scan or unavailable to static analysis.</p><ul id="overview-reasons" class="overview-reasons"></ul><p class="muted">A clean parse and zero unresolved references do not guarantee complete runtime coverage.</p></div>
+        </div>
+      </section>
       <div class="workspace">
         <section class="panel explorer" aria-labelledby="explorer-title">
           <div class="panel-head"><div><p class="eyebrow">EXPLORE</p><h2 id="explorer-title">Connections</h2></div><span class="chip">FILE LEVEL</span></div>
@@ -48,7 +60,7 @@
               <button type="button" id="explore-back" disabled>Undo expansion</button>
               <button type="button" id="explore-exit" disabled>Return to search</button>
               <label class="graph-self"><input id="graph-self" type="checkbox" disabled> Show same-file references</label>
-              <label class="graph-self"><input id="graph-neighbors" type="checkbox" checked disabled> Include connected files in search</label>
+              <label class="graph-self"><input id="graph-neighbors" type="checkbox" checked disabled> Include connected files outside file filters</label>
             </div>
             <p class="graph-legend"><span><i class="legend-outgoing"></i> Outgoing from selection</span><span><i class="legend-incoming"></i> Incoming to selection</span><span><i class="legend-inferred"></i> Inferred</span></p>
             <p id="graph-selection" class="graph-selection" aria-live="polite">Select a file to highlight its connections. Hover over a node to see its full path.</p>

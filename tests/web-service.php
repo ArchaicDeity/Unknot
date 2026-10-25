@@ -97,6 +97,10 @@ try {
     checkWeb($assetStatus === 200 && str_contains(strtolower($assetHeaders), 'content-type: text/javascript'), 'Bundled graph library must be served locally as JavaScript.');
     checkWeb($request('/assets/graph-model.js')[0] === 200, 'Graph model must be available locally.');
     checkWeb($request('/assets/search.js')[0] === 200, 'Declaration search must be available locally.');
+    [$detailsStatus, $detailsHeaders] = $request('/assets/details.js');
+    checkWeb($detailsStatus === 200 && str_contains(strtolower($detailsHeaders), 'content-type: text/javascript'), 'File details module must be served locally as JavaScript.');
+    [$fileListStatus, $fileListHeaders] = $request('/assets/file-list.js');
+    checkWeb($fileListStatus === 200 && str_contains(strtolower($fileListHeaders), 'content-type: text/javascript'), 'File list module must be served locally as JavaScript.');
     checkWeb($request('/assets/source-check.js')[0] === 200, 'Local file comparison must be available locally.');
     checkWeb($request('/assets/overview.js')[0] === 200 && $request('/assets/overview-model.js')[0] === 200, 'Report overview must be available locally.');
     checkWeb($request('/assets/impact.js')[0] === 200 && $request('/assets/impact-model.js')[0] === 200, 'Impact analysis must be available locally.');

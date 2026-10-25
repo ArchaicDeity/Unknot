@@ -38,6 +38,8 @@ if ($method !== 'GET') {
 $assets = ['/' => ['index.html', 'text/html; charset=utf-8'], '/assets/style.css' => ['assets/style.css', 'text/css; charset=utf-8'],
     '/assets/unknot-mark.svg' => ['assets/unknot-mark.svg', 'image/svg+xml'],
     '/assets/app.js' => ['assets/app.js', 'text/javascript; charset=utf-8'],
+    '/assets/details.js' => ['assets/details.js', 'text/javascript; charset=utf-8'],
+    '/assets/file-list.js' => ['assets/file-list.js', 'text/javascript; charset=utf-8'],
     '/assets/report.js' => ['assets/report.js', 'text/javascript; charset=utf-8'],
     '/assets/search.js' => ['assets/search.js', 'text/javascript; charset=utf-8'],
     '/assets/source-check.js' => ['assets/source-check.js', 'text/javascript; charset=utf-8'],

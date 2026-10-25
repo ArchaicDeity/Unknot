@@ -126,7 +126,7 @@ final class IsolatedExtractor
                     }
                     if ($responseLength !== null && strlen($response) >= $responseLength) {
                         if (!$fileMode) {
-                            return $this->decode($response, $responseLength, $source) ?? $failure('parser-invalid-response');
+                            return (new WorkerResponse())->decode($response, $responseLength, $source) ?? $failure('parser-invalid-response');
                         }
                         return $this->decodeFileResponse($response, $responseLength, $remainingBytes) ?? $failure('parser-invalid-response');
                     }
@@ -150,11 +150,6 @@ final class IsolatedExtractor
             }
             proc_close($process);
         }
-    }
-
-    private function decode(string $response, int $expectedLength, string $source): ?array
-    {
-        return (new WorkerResponse())->decode($response, $expectedLength, $source);
     }
 
     private function decodeFileResponse(string $response, int $expectedLength, int $remainingBytes): ?array

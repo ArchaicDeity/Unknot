@@ -18,6 +18,10 @@ const report = {
   findings: [{ id: 'finding:1', fileId: 'file:A.php', api: 'pdo::query', category: 'query', confidence: 'heuristic', line: 5 }],
 };
 assert.equal(validateReport(report), report);
+const legacyWithExtension = structuredClone(report);
+legacyWithExtension.extensions = { legacyMethodEvidence: { version: 1, files: report.nodes.map(node => ({ fileId: node.id, coverage: 'available', methods: [], calls: [] })) } };
+assert.equal(validateReport(legacyWithExtension), legacyWithExtension, 'A schema-0 extension must not block existing file-level exploration.');
+assert.deepEqual(hotspots(legacyWithExtension), hotspots(report), 'Unknown method evidence must not change file-level hotspot counts.');
 assert.equal((await readReportFile({ size: 100, text: async () => JSON.stringify(report) })).scan.rootLabel, 'fixture');
 let oversizedRead = false;
 await assert.rejects(readReportFile({ size: 16 * 1024 * 1024 + 1, text: async () => { oversizedRead = true; return '{}'; } }), /16 MiB/);

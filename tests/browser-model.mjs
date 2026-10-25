@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../public/assets/report.js', import.meta.url));
-const { validateReport, hotspots } = await import('data:text/javascript;base64,' + source.toString('base64'));
+const { validateReport, readReportFile, hotspots } = await import('data:text/javascript;base64,' + source.toString('base64'));
 const report = {
   schemaVersion: 0,
   scan: { rootLabel: 'fixture', fileCount: 2, warnings: [] },
@@ -18,6 +18,11 @@ const report = {
   findings: [{ id: 'finding:1', fileId: 'file:A.php', api: 'pdo::query', category: 'query', confidence: 'heuristic', line: 5 }],
 };
 assert.equal(validateReport(report), report);
+assert.equal((await readReportFile({ size: 100, text: async () => JSON.stringify(report) })).scan.rootLabel, 'fixture');
+let oversizedRead = false;
+await assert.rejects(readReportFile({ size: 16 * 1024 * 1024 + 1, text: async () => { oversizedRead = true; return '{}'; } }), /16 MiB/);
+assert.equal(oversizedRead, false, 'Oversized report imports are rejected before reading.');
+await assert.rejects(readReportFile({ size: 1, text: async () => '{' }), SyntaxError);
 const modern = structuredClone(report);
 modern.schemaVersion = 1;
 modern.nodes[0].declarations = [{ name: 'App\\Service', kind: 'class', line: 1 }];

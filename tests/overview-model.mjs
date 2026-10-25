@@ -45,6 +45,7 @@ assert.deepEqual(demoSummary.parse, { clean: 254, failed: 0, skipped: 0 });
 // Exercise the folder controller without needing to load a local source tree.
 class Element {
   constructor() { this.children = []; this.attributes = {}; this.events = {}; this.textContent = ''; this.hidden = false; }
+  set innerHTML(value) { throw new Error('Report labels must not be interpreted as HTML.'); }
   appendChild(child) { this.children.push(child); }
   replaceChildren() { this.children = []; }
   addEventListener(name, handler) { this.events[name] = handler; }
@@ -76,5 +77,11 @@ elements.more.events.click();
 assert.equal(elements.directories.children.length, 35);
 assert.equal(elements.more.hidden, true);
 assert.equal(elements.reasons.children[0].textContent, 'No unresolved references recorded.');
+const markupDirectory = '<img onerror=alert(1)>/';
+const markupReason = '<svg onload=alert(1)>';
+controller.setReport({ scan: { warnings: [] }, nodes: [{ path: markupDirectory + 'file.php', parseState: 'clean' }],
+  edges: [{ confidence: 'unresolved', reasonCode: markupReason }] });
+assert.ok(elements.directories.children[0].textContent.includes(markupDirectory), 'Folder names must remain literal text.');
+assert.ok(elements.reasons.children[0].textContent.includes(markupReason), 'Unknown diagnostic labels must remain literal text.');
 delete globalThis.document;
 console.log('Report overview checks passed.');

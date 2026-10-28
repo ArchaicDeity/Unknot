@@ -29,7 +29,7 @@ jobs:
           docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
             --tmpfs /tmp:rw,nosuid,noexec,size=128m -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer \
             -v "$PWD:/app:ro" -w /app --entrypoint sh \
-            php@sha256:d4f6e10eb393de7e3a7a88e8b88e139072dd3ae297f6a5dada8257e6fe32c585 \
+            php@sha256:104890ada56869090c9cd0ec709fe205834d3e383b46d9995dc16cd6388a9302 \
             -c 'set -e; ulimit -c 0; mkdir /tmp/project; cp -R /app/src /app/bin /app/vendor /app/tests /app/fixtures /app/public /app/demo /tmp/project/; cp /app/composer.json /app/composer.lock /app/.composer-ci.phar /tmp/project/; cd /tmp/project; php .composer-ci.phar test'
 
   windows:
